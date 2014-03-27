@@ -8,8 +8,9 @@ import pylab as p
 
 d.visual()
 
-# create two histograms of normal distribution
-# with shifted means and one histogram having the double number of entries
+# create histograms of two normal distributions, one
+# having a small extra peak at x=0
+# h1 has about 2 times the number of entries as h2
 bins = n.linspace(-10,10,101)
 h1a = d.factory.hist1d(n.random.normal(2.0,2,2e5), bins) 
 h1b = d.factory.hist1d(n.random.normal(0.0,.5,1e4), bins)
