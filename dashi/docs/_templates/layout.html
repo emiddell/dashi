@@ -1,0 +1,57 @@
+{% extends "!layout.html" %}
+{% block rootrellink %}
+    {{ super() }}
+{% endblock %}
+
+{% block linktags %}
+    {{ super() }}
+{% endblock %}
+
+{%- block footer %}
+    <div class="footer">
+        <a href="mailto:Eike Middell <eike.middell@desy.de>">Contact</a> | 
+    <a href="http://zms.desy.de/imprint/index_eng.html">Disclaimer</a> |
+    {%- if last_updated %}
+      {% trans last_updated=last_updated|e %}Last updated on {{ last_updated }}.{% endtrans %}
+    {%- endif %}
+    {%- if show_sphinx %}
+      {% trans sphinx_version=sphinx_version|e %}Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> {{ sphinx_version }}.{% endtrans %}
+    {%- endif %}
+    </div>
+{%- endblock %}
+
+{%- macro ownsidebar() %}
+      {%- if not embedded %}{% if not theme_nosidebar|tobool %}
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+          {%- block sidebarlogo %}
+          {%- if logo %}
+            <p class="logo"><a href="{{ pathto(master_doc) }}">
+              <img class="logo" src="{{ pathto('_static/' + logo, 1) }}" alt="Logo"/>
+            </a></p>
+          {%- endif %}
+          {%- endblock %}
+          {%- block sidebartoc %}
+          {%- if display_toc %}
+            <h3><a href="{{ pathto(master_doc) }}">{{ _('Table Of Contents') }}</a></h3>
+            {{ toc }}
+          {%- endif %}
+          {%- endblock %}
+          {%- if customsidebar %}
+          {% include customsidebar %}
+          {%- endif %}
+          {%- block sidebarsourcelink %}
+          {%- if show_source and has_source and sourcename %}
+            <h3>{{ _('This Page') }}</h3>
+            <ul class="this-page-menu">
+              <li><a href="{{ pathto('_sources/' + sourcename, true)|e }}"
+                     rel="nofollow">{{ _('Show Source') }}</a></li>
+            </ul>
+          {%- endif %}
+          {%- endblock %}
+        </div>
+      </div>
+      {%- endif %}{% endif %}
+{%- endmacro %}
+
+{% block sidebar1 %}{{ ownsidebar() }}{% endblock %}
