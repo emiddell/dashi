@@ -372,6 +372,12 @@ def _process_colorscale(bincontent, kwargs):
             from matplotlib.colors import Normalize
             bincontent[bincontent==0] = n.nan
             kwargs["norm"] = Normalize(vmin=0, vmax=n.nanmax(bincontent))
+    else:
+        # norm specified by user, hence she controls whether the scale
+        # is linear or logarithmic. Make sure any additional 'log' is removed
+        # from kwargs since pcolor cannot deal with it  
+        kwargs.pop("log", False)
+    
     
     # Make sure the color map has an underflow color
     cmap = kwargs.pop("cmap", p.cm.jet)
