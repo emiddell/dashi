@@ -16,10 +16,10 @@ class OrderedDict(MutableMapping):
 
         if data is not None:
             if hasattr(data, 'items'): # dictionary
-                items = data.items()
+                items = list(data.items())
             else:                      # list of tuples
                 items = list(data)
-            for i in xrange(len(items)):
+            for i in range(len(items)):
                 length = len(items[i])
                 if length != 2:
                     raise ValueError('dictionary update sequence element '

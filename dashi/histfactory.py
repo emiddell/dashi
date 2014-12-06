@@ -83,14 +83,14 @@ def hist2d(sample, bins, weights=None, labels=None, title=None):
         **Return Value:**
             the filled :class:`dashi.histogram.hist2d`
     """
-    if not (isinstance(bins, tuple) and all(map(lambda i: isinstance(i, n.ndarray), bins))):
+    if not (isinstance(bins, tuple) and all([isinstance(i, n.ndarray) for i in bins])):
         bins = histfuncs.generatebins_nd(2, sample, bins)
     
-    if isinstance(sample, tuple) and (all(map(lambda i: isinstance(i, list), sample))):
+    if isinstance(sample, tuple) and (all([isinstance(i, list) for i in sample])):
         sample = tuple( n.asarray(i) for i in sample )
 
     if not weights is None:
-        if isinstance(weights, tuple) and (all(map(lambda i: isinstance(i, list), weights))):
+        if isinstance(weights, tuple) and (all([isinstance(i, list) for i in weights])):
             weights = tuple( n.asarray(i) for i in weights )
         
 

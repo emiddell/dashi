@@ -26,8 +26,8 @@ class InfoBox(object):
         
         #key_areas = [ mpl.offsetbox.TextArea(k, textprops=self.textprops) for k in self.datadict.keys() ]
         #val_areas = [ mpl.offsetbox.TextArea(self.datadict[k], textprops=self.textprops) for k in self.datadict.keys() ]
-        key_areas = [ mpl.offsetbox.TextArea(k, textprops=self.textprops) for k in self.datadict.keys() ]
-        val_areas = [ mpl.offsetbox.TextArea(self.datadict[k], textprops=self.textprops) for k in self.datadict.keys() ]
+        key_areas = [ mpl.offsetbox.TextArea(k, textprops=self.textprops) for k in list(self.datadict.keys()) ]
+        val_areas = [ mpl.offsetbox.TextArea(self.datadict[k], textprops=self.textprops) for k in list(self.datadict.keys()) ]
         
         key_vpack = mpl.offsetbox.VPacker(children=key_areas, align="left", pad=0, sep=0)
         val_vpack = mpl.offsetbox.VPacker(children=val_areas, align="right", pad=0, sep=0)

@@ -2,7 +2,7 @@
 import numpy as n
 import logging
 from logging import getLogger
-import fitting, histfuncs
+from . import fitting, histfuncs
 
 
 class histogram_statistics(object):
@@ -92,7 +92,7 @@ class histogram_statistics(object):
         else:
             means, vars, stds, medians,uflows, oflows   = [],[],[],[],[],[]
 
-            for dim in xrange(self.histogram.ndim):
+            for dim in range(self.histogram.ndim):
                 tmp = histfuncs.project_bincontent(self.histogram, dim)
                 wsum = tmp.sum() # == self.histogram.bincontent.sum() == sum of weights
                 mean        = (tmp * self.histogram._h_bincenters[dim]   ).sum() / wsum
@@ -201,7 +201,7 @@ class histogram(object):
             assert self._h_squaredweights.shape == tuple(datacubeshape)
 
         # present views of the non overflow bins to the outside 
-        self._h_visiblerange = [slice(1,-1) for i in xrange(self.ndim)]
+        self._h_visiblerange = [slice(1,-1) for i in range(self.ndim)]
         self.bincontent      = self._h_bincontent[self._h_visiblerange]
         self.squaredweights  = self._h_squaredweights[self._h_visiblerange]
         self.nbins           = tuple([i-2 for i in self._h_bincontent.shape])
@@ -256,7 +256,7 @@ class histogram(object):
                 raise ValueError("given weights contain nans!")
 
         nanmask = n.zeros(len(sample), dtype=bool)
-        for dim in xrange(self.ndim):
+        for dim in range(self.ndim):
             nanmask |= n.isnan(sample[:,dim])
 
         nnans = len(nanmask[nanmask])
@@ -322,9 +322,9 @@ class histogram(object):
         try:   
             assert (isinstance(other, histogram))
             assert (self.ndim == other.ndim)
-            for i in xrange(self.ndim):
+            for i in range(self.ndim):
                 assert (self._h_binedges[i] == other._h_binedges[i]).all()
-        except AssertionError, ex:
+        except AssertionError as ex:
             getLogger("dashi.histogram").error(str(ex))
             return False
 
@@ -485,7 +485,7 @@ class histogram(object):
         new._h_squaredweights = self._h_squaredweights
     
         off = 0
-        for i in xrange(self.ndim):
+        for i in range(self.ndim):
             if i in dims:
                 continue
             new._h_bincontent = new._h_bincontent.sum(axis=i-off)

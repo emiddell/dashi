@@ -1,8 +1,9 @@
 from math import ceil, floor, log10
 import numpy as n
-import scatterpoints
+from . import scatterpoints
 import dashi as d
 from logging import getLogger
+import collections
 
 
 def cumsum(narray, operator):
@@ -12,7 +13,7 @@ def cumsum(narray, operator):
     elif operator == '>':
         return (n.cumsum(narray[::-1]))[::-1]
     else:
-        print "Non valid operator chosen! Please choose '<' or '>'"
+        print("Non valid operator chosen! Please choose '<' or '>'")
 
 
 def project_bincontent(histogram, dim):
@@ -48,16 +49,16 @@ def number_format(value, prec=5):
     
     if value<1:
         # construct format string for that precision
-        fmt = u"".join([u"%.", str(prec), u"f"])
+        fmt = "".join(["%.", str(prec), "f"])
         result =  fmt % value
     else:
-        fmt = u"".join([u"%.", str(prec), u"f"])
+        fmt = "".join(["%.", str(prec), "f"])
         result =  fmt % value
 
     if factorexp != 0:
-        result = u"%s\xb71e%d" % (result, factorexp)
+        result = "%s\xb71e%d" % (result, factorexp)
 
-    return unicode(result)
+    return str(result)
     
 
 def number_error_format(value, error):
@@ -83,25 +84,25 @@ def number_error_format(value, error):
             digits = str(int(abs(floor(log10(error)))))
 
         # construct format string for that precision
-        fmt = u"".join([u"%.", digits, u"f \u00B1 %.", digits, u"f"])
+        fmt = "".join(["%.", digits, "f \u00B1 %.", digits, "f"])
         result =  fmt % (value,error)
     else:
         # digits needed for precision
         try:
             digits = str(int(abs(ceil(log10(error)))))
             # construct format string for that precision
-            fmt = u"".join([u"%", digits, u".0f \u00B1 %", digits, u".0f"])
+            fmt = "".join(["%", digits, ".0f \u00B1 %", digits, ".0f"])
             result =  fmt % (value,error)
         except:
             digits = '3'
-            fmt = u"".join([u"%", digits, u".0f \u00B1 %", digits, u".0f"])
+            fmt = "".join(["%", digits, ".0f \u00B1 %", digits, ".0f"])
             result =  fmt % (value,error)
             
 
     if factorexp != 0:
-        result = u"(%s) 1e%d" % (result, factorexp)
+        result = "(%s) 1e%d" % (result, factorexp)
 
-    return unicode(result)
+    return str(result)
 
 
 def generatebins_1d_tuple(bintuple):
@@ -153,7 +154,7 @@ def generatebins_nd(ndim, sample, nbins):
         sample = n.vstack(sample).T
 
     goodmask = n.ones(len(sample), dtype=bool)
-    for dim in xrange(ndim):
+    for dim in range(ndim):
         goodmask &= n.isfinite(sample[:,dim])
     
     genbins = []
@@ -183,7 +184,7 @@ def h2profile(h2, dim=0, yerror='std'):
     if dim == 0:
         otherdim = 1
         getLogger("dashi.h2profile").info("projecting along dimension 0")
-        for i in xrange(npoints):
+        for i in range(npoints):
             wsum, mean, var = binned_mean_and_variance(h2.bincontent[i,:], h2.bincenters[1])
             yval[i] = mean
             if yerror=='std':
@@ -203,7 +204,7 @@ def h2profile(h2, dim=0, yerror='std'):
     elif dim == 1:
         otherdim = 0
         getLogger("dashi.h2profile").info("projecting along dimension 1")
-        for i in xrange(npoints):
+        for i in range(npoints):
             wsum, mean, var = binned_mean_and_variance(h2.bincontent[:,i], h2.bincenters[0])
             yval[i] = mean
             if yerror=='std':
@@ -432,7 +433,7 @@ def kstest(h1a,h1b, skipemptybins=False):
             
         z = ksdist * n.sqrt(esum1*esum2 / (esum1+esum2))
         return ksdist, scipy.stats.ksprob(z)
-    elif ((isinstance(h1a, d.histogram.hist1d) and callable(h1b)) or 
+    elif ((isinstance(h1a, d.histogram.hist1d) and isinstance(h1b, collections.Callable)) or 
           (isinstance(h1a, d.histogram.hist1d) and isinstance(h1b, n.ndarray))):
         
         m = None
@@ -441,7 +442,7 @@ def kstest(h1a,h1b, skipemptybins=False):
         else:
             m = n.ones(len(h1a.bincontent), dtype=bool)
         
-        if callable(h1b):
+        if isinstance(h1b, collections.Callable):
             h1b = h1b(h1a.bincenters[m])
 
         if len(h1b) != len(h1a.bincontent[m]):
@@ -493,7 +494,7 @@ def weighted_histsum(histos, ylabel="weighted histsum"):
 #    return result
 
     result =  histos[0].empty_like()
-    for i in xrange(nbins):
+    for i in range(nbins):
         m = n.isfinite(weights[:,i]) # select histograms with nonempty bins
         if len(m[m]) > 0:
             sum1 = (bincontents[:,i][m] * weights[:,i][m]).sum()

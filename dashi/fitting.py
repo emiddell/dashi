@@ -2,6 +2,7 @@ import numpy as n
 import scipy.stats
 import inspect
 import copy
+import sys
 from dashi.odict import OrderedDict
 from logging import getLogger 
 
@@ -114,12 +115,12 @@ class poly(model):
         elif degree == 1:
             df = lambda x, p0,p1 : p0 + p1*x
         else:
-            dfuncstr = "df = lambda x," + ",".join(["p%d" % i for i in xrange(degree+1)]) + " : "
+            dfuncstr = "df = lambda x," + ",".join(["p%d" % i for i in range(degree+1)]) + " : "
             funcstr = dfuncstr[1:]
-            funcstr += "p1 + " + " + ".join(["(p%d/%.1f)*x**%d" % (i, i+1,i+1) for i in xrange(2,degree+1)])
-            dfuncstr += "p0 + p1*x + " + " + ".join(["p%d*x**%d" % (i,i) for i in xrange(2,degree+1)])
-            exec dfuncstr
-            exec funcstr
+            funcstr += "p1 + " + " + ".join(["(p%d/%.1f)*x**%d" % (i, i+1,i+1) for i in range(2,degree+1)])
+            dfuncstr += "p0 + p1*x + " + " + ".join(["p%d*x**%d" % (i,i) for i in range(2,degree+1)])
+            exec(dfuncstr)
+            exec(funcstr)
 
         model.__init__(self, df, f)
 
@@ -155,9 +156,9 @@ def _bfgs(model, chi2, verbose=True):
     """
     
     import inspect
-    free = [k for k in model.params.keys() if not k in model.fixed]
+    free = [k for k in list(model.params.keys()) if not k in model.fixed]
     def chi2f(args):
-        kwargs = dict(zip(free, args))
+        kwargs = dict(list(zip(free, args)))
         return chi2(**kwargs)
     
     x0 = []
@@ -256,12 +257,19 @@ def _prepare_data(x, data, error, integral):
     
     return x, centers, data, error
 
+def exec_(stmt, locals=None):
+    if sys.version_info.major > 2:
+        exec(stmt, locals)
+    else:
+        exec("""exec stmt in locals""")
+    return locals
+
 def _define_objfun(expr, x, data, weight, model, integral):
     """
     :param expr: expression for the element-wise contribution to the objective function
     """
     from numpy import diff, log
-    free = filter(lambda k: k not in model.fixed, model.params.keys())
+    free = [k for k in list(model.params.keys()) if k not in model.fixed]
     varstring = ",".join(free)
     mod = "model(x, %s)" % (",".join(["%s=%s" % (k,k) for k in free]))
     
@@ -271,8 +279,10 @@ def _define_objfun(expr, x, data, weight, model, integral):
     expr = expr.replace('model', mod)
     funcdef = 'chi2 = lambda %(varstring)s: (%(expr)s).sum()' % locals()
     funcdef_values = 'chi2valfunc = lambda %(varstring)s: %(expr)s' % locals()
-    exec funcdef in locals()
-    exec funcdef_values in locals()
+    ldict = exec_(funcdef, locals())
+    chi2 = ldict['chi2']
+    ldict = exec_(funcdef_values, locals())
+    chi2valfunc = ldict['chi2valfunc']
     return chi2, chi2valfunc
 
 def leastsq(x, data, model, error=None, integral=False, verbose=True, chi2values=False, first_guess=True):
@@ -328,7 +338,7 @@ def leastsq(x, data, model, error=None, integral=False, verbose=True, chi2values
     model.chi2prob = scipy.stats.chisqprob(model.chi2, model.ndof)
 
     if chi2values:
-        model.chi2values = centers, chi2valfunc(*(v for k, v in model.params.items() if not k in model.fixed))
+        model.chi2values = centers, chi2valfunc(*(v for k, v in list(model.params.items()) if not k in model.fixed))
 
     return model
 
@@ -378,9 +388,9 @@ def poissonllh(x, data, model, error=None, integral=True, first_guess=True, verb
         getLogger("dashi.fitting").error("You need to install pyminuit2")
         raise
 
-    print
-    print "FIXME There several changes that were only made to leastsq -> check!"
-    print
+    print()
+    print("FIXME There several changes that were only made to leastsq -> check!")
+    print()
     1/0 # bail out
 
     # define residual between data and model
@@ -388,17 +398,17 @@ def poissonllh(x, data, model, error=None, integral=True, first_guess=True, verb
 
     funcdef = None
     #varstring = ",".join(model.parnames)
-    varstring = ",".join(model.params.keys())
+    varstring = ",".join(list(model.params.keys()))
     log = n.log
     # -log L = mu - n * log mu + ( log (n!) )   | combinatorial term can be omitted
     if error is None:
         chi_funcdef = "chi2 = lambda %s: ((data - model(x, %s))**2).sum()" % (varstring, varstring)
     else:
         chi_funcdef = "chi2 = lambda %s: (((data - model(x, %s))/ error)**2).sum()" % (varstring, varstring) 
-    exec chi_funcdef in locals()
+    exec(chi_funcdef, locals())
     
     llh_funcdef = "llh = lambda %s: (model(x, %s) - data*log(model(x,%s))).sum()" % (varstring, varstring, varstring)
-    exec llh_funcdef in locals()
+    exec(llh_funcdef, locals())
 
     # give the model a chance to have a first look on the data to set the starting values
     model.first_guess(x, data)

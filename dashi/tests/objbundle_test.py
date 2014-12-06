@@ -7,7 +7,7 @@ import os
 def test_bundle_creation():
     b = d.bundle(y=1, z=2, x=3)
 
-    assert b.keys() == ["x", "y", "z"]
+    assert list(b.keys()) == ["x", "y", "z"]
     assert b.x == 3
     assert b.y == 1
     assert b.z == 2
@@ -64,7 +64,7 @@ def test_diversify():
 
     b2 = b.diversify({ "x" : ["x1", "x2"], "y" : ["y1", "y2"]})
 
-    assert b2.keys() == ["x1", "x2", "y1", "y2"]
+    assert list(b2.keys()) == ["x1", "x2", "y1", "y2"]
     assert id(b2.x1) == id(x)
     assert id(b2.x2) == id(x)
     assert id(b2.y1) == id(y)
@@ -100,16 +100,16 @@ def test_transpose():
     assert all(b.cat_b.y == [4,5,6])
     assert all(b.cat_c.y == [4,5,6])
 
-    assert b.cat_a.keys() == ["x","y","z"]
-    assert b.cat_b.keys() == ["x","y","z"]
-    assert b.cat_c.keys() == ["other", "x","y","z"]
+    assert list(b.cat_a.keys()) == ["x","y","z"]
+    assert list(b.cat_b.keys()) == ["x","y","z"]
+    assert list(b.cat_c.keys()) == ["other", "x","y","z"]
     
     bt = b.transpose()
     
-    assert bt.x.keys() == ["cat_a", "cat_b", "cat_c"]
-    assert bt.y.keys() == ["cat_a", "cat_b", "cat_c"]
-    assert bt.z.keys() == ["cat_a", "cat_b", "cat_c"]
-    assert "other" not in bt.keys()
+    assert list(bt.x.keys()) == ["cat_a", "cat_b", "cat_c"]
+    assert list(bt.y.keys()) == ["cat_a", "cat_b", "cat_c"]
+    assert list(bt.z.keys()) == ["cat_a", "cat_b", "cat_c"]
+    assert "other" not in list(bt.keys())
 
     assert id(bt.x.cat_a) == id(b.cat_a.x)
     assert id(bt.y.cat_a) == id(b.cat_a.y)
