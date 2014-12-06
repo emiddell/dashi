@@ -16,13 +16,11 @@ def cumsum(narray, operator):
 
 
 def project_bincontent(histogram, dim):
-    tmp = histogram.bincontent
-    bincontentsum = histogram.bincontent.sum()
     # sum entries in all other dimensions
-    for i in xrange(histogram.ndim):
-        if i != dim:
-            tmp = tmp.sum(i)
-    assert abs(tmp.sum() - bincontentsum < 1e-6)
+    dims = list(range(histogram.ndim))
+    dims.remove(dim)
+    tmp = histogram.bincontent.sum(axis=tuple(dims))
+    assert abs(tmp.sum() - histogram.bincontent.sum() < 1e-6)
 
     return tmp
 
