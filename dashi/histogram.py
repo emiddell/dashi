@@ -320,7 +320,7 @@ class histogram(object):
             same binning.
         """
         try:   
-            assert (type(self) == type(other))
+            assert (isinstance(other, histogram))
             assert (self.ndim == other.ndim)
             for i in xrange(self.ndim):
                 assert (self._h_binedges[i] == other._h_binedges[i]).all()
@@ -413,20 +413,55 @@ class histogram(object):
         """
         implement histogram[index]
         """
-        idxs = [i for i, sl in enumerate(slice_) if isinstance(sl, slice)]
-        subedges = [self._h_binedges[i] for i in idxs]
+        subedges = list()
+        target_slice = list()
+        for i, sl in enumerate(slice_):
+            if isinstance(sl, slice):
+                # we don't handle strides at the moment
+                assert(slice_[i].step is None or slice_[i].step == 1)
+                
+                subedge = self._h_binedges[i]
+                start, stop = slice_[i].start, slice_[i].stop
+                # convert bin indices into left- and right-edge indices
+                if start is not None and start < 0:
+                    start -= 1
+                if stop is not None and stop >= 0:
+                    stop += 1
+                
+                subedge = subedge[slice(start, stop)]
+                to_cat = [subedge]
+                target = slice(None)
+                # Retain over-underflow bins (empty if outside the slice)
+                if not n.isinf(subedge[0]):
+                    to_cat = [-n.inf] + to_cat
+                    target = slice(1,None)
+                if not n.isinf(subedge[-1]):
+                    to_cat = to_cat + [n.inf]
+                    target = slice(target.start, -1)
+                if len(to_cat) > 1:
+                    subedge = n.hstack(to_cat)
+                subedges.append(subedge)
+                target_slice.append(target)
+        
+        # share backing arrays if possible
+        view = all(s == slice(None) for s in target_slice)
+        
+        if view:
+            kwargs = dict(bincontent=self._h_bincontent[slice_], squaredweights=self._h_squaredweights[slice_])
+        else:
+            kwargs = dict()
+        
         ndim = len(subedges)
         if ndim == 1:
-            new = hist1d(subedges[0])
+            new = hist1d(subedges[0], **kwargs)
         elif ndim == 2:
-            new = hist2d(subedges)
+            new = hist2d(subedges, **kwargs)
         else:
-            new = histogram(ndim, subedges)
-        new._h_bincontent = self._h_bincontent[slice_]
-        new._h_squaredweights = self._h_squaredweights[slice_]
-    
-        new.bincontent = new._h_bincontent[new._h_visiblerange]
-        new.squaredweights = new._h_squaredweights[new._h_visiblerange]
+            new = histogram(ndim, subedges, **kwargs)
+        
+        if not view:
+            new._h_bincontent[target_slice] = self._h_bincontent[slice_]
+            new._h_squaredweights[target_slice] = self._h_squaredweights[slice_]
     
         return new
     
