@@ -6,7 +6,7 @@ Object bundles are intended to simplify the work with sets of similar objects.
 They are basically dictionaries with the additional feature, that method calls 
 on the bundle are executed on each object in the bundle. 
 
-.. literalinclude:: ../examples/objbundle_1.py
+.. literalinclude:: ../dashi/examples/objbundle_1.py
     :language: python
     :linenos:
 

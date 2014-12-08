@@ -4,8 +4,8 @@
 examples for 2d histograms
 ==========================
 
-.. plot:: ../examples/hist2d.py
+.. plot:: ../dashi/examples/hist2d.py
     :include-source:
 
-.. plot:: ../examples/hist2d_stack.py
+.. plot:: ../dashi/examples/hist2d_stack.py
     :include-source:

@@ -3,7 +3,7 @@
 examples for 1d histograms
 ==========================
 
-.. plot:: ../examples/hist1d.py
+.. plot:: ../dashi/examples/hist1d.py
     :include-source:
 
 .. plot::
