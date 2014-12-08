@@ -2,7 +2,7 @@
 import numpy as n
 import logging
 from logging import getLogger
-import fitting, histfuncs
+from . import fitting, histfuncs
 
 
 class histogram_statistics(object):
@@ -92,7 +92,7 @@ class histogram_statistics(object):
         else:
             means, vars, stds, medians,uflows, oflows   = [],[],[],[],[],[]
 
-            for dim in xrange(self.histogram.ndim):
+            for dim in range(self.histogram.ndim):
                 tmp = histfuncs.project_bincontent(self.histogram, dim)
                 wsum = tmp.sum() # == self.histogram.bincontent.sum() == sum of weights
                 mean        = (tmp * self.histogram._h_bincenters[dim]   ).sum() / wsum
@@ -201,7 +201,7 @@ class histogram(object):
             assert self._h_squaredweights.shape == tuple(datacubeshape)
 
         # present views of the non overflow bins to the outside 
-        self._h_visiblerange = [slice(1,-1) for i in xrange(self.ndim)]
+        self._h_visiblerange = [slice(1,-1) for i in range(self.ndim)]
         self.bincontent      = self._h_bincontent[self._h_visiblerange]
         self.squaredweights  = self._h_squaredweights[self._h_visiblerange]
         self.nbins           = tuple([i-2 for i in self._h_bincontent.shape])
@@ -256,7 +256,7 @@ class histogram(object):
                 raise ValueError("given weights contain nans!")
 
         nanmask = n.zeros(len(sample), dtype=bool)
-        for dim in xrange(self.ndim):
+        for dim in range(self.ndim):
             nanmask |= n.isnan(sample[:,dim])
 
         nnans = len(nanmask[nanmask])
@@ -320,11 +320,11 @@ class histogram(object):
             same binning.
         """
         try:   
-            assert (type(self) == type(other))
+            assert (isinstance(other, histogram))
             assert (self.ndim == other.ndim)
-            for i in xrange(self.ndim):
+            for i in range(self.ndim):
                 assert (self._h_binedges[i] == other._h_binedges[i]).all()
-        except AssertionError, ex:
+        except AssertionError as ex:
             getLogger("dashi.histogram").error(str(ex))
             return False
 
@@ -413,20 +413,55 @@ class histogram(object):
         """
         implement histogram[index]
         """
-        idxs = [i for i, sl in enumerate(slice_) if isinstance(sl, slice)]
-        subedges = [self._h_binedges[i] for i in idxs]
+        subedges = list()
+        target_slice = list()
+        for i, sl in enumerate(slice_):
+            if isinstance(sl, slice):
+                # we don't handle strides at the moment
+                assert(slice_[i].step is None or slice_[i].step == 1)
+                
+                subedge = self._h_binedges[i]
+                start, stop = slice_[i].start, slice_[i].stop
+                # convert bin indices into left- and right-edge indices
+                if start is not None and start < 0:
+                    start -= 1
+                if stop is not None and stop >= 0:
+                    stop += 1
+                
+                subedge = subedge[slice(start, stop)]
+                to_cat = [subedge]
+                target = slice(None)
+                # Retain over-underflow bins (empty if outside the slice)
+                if not n.isinf(subedge[0]):
+                    to_cat = [-n.inf] + to_cat
+                    target = slice(1,None)
+                if not n.isinf(subedge[-1]):
+                    to_cat = to_cat + [n.inf]
+                    target = slice(target.start, -1)
+                if len(to_cat) > 1:
+                    subedge = n.hstack(to_cat)
+                subedges.append(subedge)
+                target_slice.append(target)
+        
+        # share backing arrays if possible
+        view = all(s == slice(None) for s in target_slice)
+        
+        if view:
+            kwargs = dict(bincontent=self._h_bincontent[slice_], squaredweights=self._h_squaredweights[slice_])
+        else:
+            kwargs = dict()
+        
         ndim = len(subedges)
         if ndim == 1:
-            new = hist1d(subedges[0])
+            new = hist1d(subedges[0], **kwargs)
         elif ndim == 2:
-            new = hist2d(subedges)
+            new = hist2d(subedges, **kwargs)
         else:
-            new = histogram(ndim, subedges)
-        new._h_bincontent = self._h_bincontent[slice_]
-        new._h_squaredweights = self._h_squaredweights[slice_]
-    
-        new.bincontent = new._h_bincontent[new._h_visiblerange]
-        new.squaredweights = new._h_squaredweights[new._h_visiblerange]
+            new = histogram(ndim, subedges, **kwargs)
+        
+        if not view:
+            new._h_bincontent[target_slice] = self._h_bincontent[slice_]
+            new._h_squaredweights[target_slice] = self._h_squaredweights[slice_]
     
         return new
     
@@ -450,7 +485,7 @@ class histogram(object):
         new._h_squaredweights = self._h_squaredweights
     
         off = 0
-        for i in xrange(self.ndim):
+        for i in range(self.ndim):
             if i in dims:
                 continue
             new._h_bincontent = new._h_bincontent.sum(axis=i-off)

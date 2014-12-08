@@ -2,11 +2,12 @@
 import pylab as p
 import numpy as n
 import matplotlib as mpl
-from infobox import InfoBox 
-from odict import OrderedDict
+from .infobox import InfoBox 
+from .odict import OrderedDict
 import dashi.histfuncs
 import dashi as d
 import copy
+from functools import reduce
 
 def _h1label(h1):
     label = h1.labels[0]
@@ -132,7 +133,7 @@ def h1scatter(self, log=False, cumulative=False, cumdir=1, color=None, different
     
     ax = p.gca()
     if color is None:
-        color = ax._get_lines.color_cycle.next()
+        color = next(ax._get_lines.color_cycle)
     
     kw = {
         "xerr" : self.xerr,
@@ -220,7 +221,7 @@ def h1band(self, log=False, type="steps", differential=False, cumulative=False, 
         y1 = n.zeros(2*(nbins+1), dtype=float)
         y2 = n.zeros(2*(nbins+1), dtype=float)
 
-        for i in xrange(nbins):
+        for i in range(nbins):
             x[1+2*i] = self.binedges[i]
             x[2+2*i] = self.binedges[i+1]
             y1[1+2*i] = bincontent[i] - binerror[i]
@@ -288,7 +289,7 @@ def h1line(self, log=False, cumulative=False, differential=False, cumdir=1, fill
     xpoints = n.zeros(2*(nbins+1), dtype=float)
     ypoints = n.zeros(2*(nbins+1), dtype=float)
 
-    for i in xrange(nbins):
+    for i in range(nbins):
         xpoints[1+2*i] = self.binedges[i]
         xpoints[2+2*i] = self.binedges[i+1]
         ypoints[1+2*i] = bincontent[i]
@@ -325,7 +326,7 @@ def h1line(self, log=False, cumulative=False, differential=False, cumdir=1, fill
         ax._legend_proxy = LegendProxy(ax)
     label = kwargs.pop('label', self.title)
     if color is None:
-        color = ax._get_lines.color_cycle.next()
+        color = next(ax._get_lines.color_cycle)
     kwargs['color'] = color
     if filled:
         ax._legend_proxy.add_fill(label=label, **kwargs)
@@ -481,14 +482,14 @@ def might_be_logspaced(bins):
 
 def h2stack1d(self, boxify=False, cmap=mpl.cm.jet, colorbar=True, cumdir=1, **kwargs):
     histos = []
-    for i in xrange(self.nbins[1]):
+    for i in range(self.nbins[1]):
         histos.append(d.factory.hist1d(self.bincenters[0], self.binedges[0], weights=self.bincontent[:,i]))
     
     if cumdir >= 0:
-        histocum = [reduce(lambda i,j : i+j, histos[:end]) for end in xrange(1,len(histos)+1)]
+        histocum = [reduce(lambda i,j : i+j, histos[:end]) for end in range(1,len(histos)+1)]
         it = reversed(list(enumerate(zip(histocum, self.bincenters[1]))))
     else:
-        histocum = [reduce(lambda i,j : i+j, histos[begin:]) for begin in xrange(0,len(histos)-1)]
+        histocum = [reduce(lambda i,j : i+j, histos[begin:]) for begin in range(0,len(histos)-1)]
         it = iter(list(enumerate(zip(histocum, self.bincenters[1]))))
     
     log = might_be_logspaced(self.binedges[1])
@@ -553,7 +554,7 @@ def h1statbox(self, axes=None, name=None, loc=2, fontsize=10, prec=5, other=None
         if not isinstance(other, dict):
             raise ValueError("other must be a dict")
         
-        for key, func in other.iteritems():
+        for key, func in other.items():
             stringdict[key] = formatfunc(func(self), prec)
 
     infobox = InfoBox(stringdict,title=name, **kwargs) # need to pop kwargs
@@ -591,7 +592,7 @@ def p2dscatter(self, log=False, color=None, label=None, orientation='horizontal'
 
     ax = p.gca()
     if color is None:
-        color = ax._get_lines.color_cycle.next()
+        color = next(ax._get_lines.color_cycle)
     
     kw = {"xerr" : self.xerr, "yerr" : self.yerr, "fmt" : "k", "capsize" : 0., "linestyle" : 'None', "color" : color}
     # for log-scaled axes, clip the lower extent of the error bar

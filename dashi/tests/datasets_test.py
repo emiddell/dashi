@@ -42,7 +42,7 @@ for cat in categories:
 
 b = hub.get("/test:x")
 
-print b
+print(b)
 
 assert len(b.typeA) == nfiles*100
 assert len(b.typeB) == nfiles*100
@@ -50,7 +50,7 @@ assert len(b.typeC) == nfiles*100
 
 hub_write.put("/x", b)
 
-for cat,files in datafiles.iteritems():
+for cat,files in datafiles.items():
     for f in files:
-        print "delete", f
+        print("delete", f)
         os.remove(f)

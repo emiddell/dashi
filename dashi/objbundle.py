@@ -3,7 +3,12 @@ import operator
 import copy as copymodule
 import itertools
 import threading
-from Queue import Queue, Empty
+import sys
+if sys.version_info.major > 2:
+    from queue import Queue, Empty
+else:
+    from Queue import Queue, Empty
+import collections
 
 bundle_classes = dict()
 
@@ -24,13 +29,13 @@ class object_bundle(object):
         if len(args) != 0:
             if not isinstance(args[0], object_bundle):
                 raise ValueError("only another bundle may be passed via a positional argument to __init__")
-            if len(bdict) > 0 and any( [i in args[0].keys() for i in bdict.keys() ]):
+            if len(bdict) > 0 and any( [i in list(args[0].keys()) for i in list(bdict.keys()) ]):
                 raise ValueError("overlap of keys in provided bundle and kwargs!")
             
             for name,obj in args[0]:
                 self.add(name,obj)
 
-        for name, obj in bdict.iteritems():
+        for name, obj in bdict.items():
             self.add(name, obj)
 
     def __setattr__(self, name, value):
@@ -79,9 +84,9 @@ class object_bundle(object):
 
     # provide access to the _b_objects dictionary
     # __iter__ will behave like dict.iteritems
-    def __iter__(self): return self._b_objects.iteritems()
+    def __iter__(self): return iter(self._b_objects.items())
     def keys(self): return sorted(self._b_objects.keys())
-    def values(self): return [self._b_objects[i] for i in self.keys()]
+    def values(self): return [self._b_objects[i] for i in list(self.keys())]
     def get(self, name): return self._b_objects[name]
     def set(self, name,value): return self.__setattr__(name, value)
 
@@ -94,7 +99,7 @@ class object_bundle(object):
                 The callable should expect one argument and will be executed
                 for every object in the bundle.
         """
-        return bundle(**dict([ (name, callable(obj)) for name,obj in self._b_objects.iteritems()]))
+        return bundle(**dict([ (name, isinstance(obj, collections.Callable)) for name,obj in self._b_objects.items()]))
     
     def map_kv(self, callable):
         """
@@ -105,7 +110,7 @@ class object_bundle(object):
                 The callable should expect two arguments and will be executed
                 for every (key-value) pair in the bundle.
         """
-        return bundle(**dict([ (name, callable(name, obj)) for name,obj in self._b_objects.iteritems()]))
+        return bundle(**dict([ (name, callable(name, obj)) for name,obj in self._b_objects.items()]))
 
     def __getattr__(self, name):
         """ 
@@ -119,16 +124,16 @@ class object_bundle(object):
         except AttributeError:
             raise ValueError("type %s has no attribute called %s" % (self._b_type.__name__, name))
     
-        if callable(attribute):
+        if isinstance(attribute, collections.Callable):
             def wrapper(*args, **kwargs):
                 bundles = []
-                for arg in itertools.chain(args, kwargs.values()):
+                for arg in itertools.chain(args, list(kwargs.values())):
                     if isinstance(arg, object_bundle):
                         bundles.append(arg)
 
                 # assert that bundles are compatible
                 for bdl in bundles[1:]:
-                    if bdl.keys() != bundles[0].keys():
+                    if list(bdl.keys()) != list(bundles[0].keys()):
                         raise ValueError("bundles have different keys")
 
                 result = dict()
@@ -142,7 +147,7 @@ class object_bundle(object):
                         else:
                             thisargs.append(arg)
                     
-                    for kwarg_name,kwarg_value in kwargs.iteritems():
+                    for kwarg_name,kwarg_value in kwargs.items():
                         if isinstance(kwarg_value, object_bundle):
                             thiskwargs[kwarg_name] = kwarg_value.get(key)
                         else:
@@ -154,14 +159,14 @@ class object_bundle(object):
     
             funcname = getattr(attribute, "func_name", attribute.__name__)
 
-            wrapper.func_doc = "bundleized function '%s'" % funcname
-            if hasattr(attribute, "func_doc") and (attribute.func_doc is not None):
-                wrapper.func_doc += "\n" + attribute.func_doc
+            wrapper.__doc__ = "bundleized function '%s'" % funcname
+            if hasattr(attribute, "func_doc") and (attribute.__doc__ is not None):
+                wrapper.__doc__ += "\n" + attribute.__doc__
             return wrapper
         
         else:
             result = dict()
-            for key in self.keys():
+            for key in list(self.keys()):
                 result[key] = getattr(self._b_objects[key], name)
 
             return bundle(**result)
@@ -190,7 +195,7 @@ class object_bundle(object):
         if sorted(divdict.keys()) != sorted(self.keys()):
             raise ValueError("the provided divdict an this bundle contain different keys")
         result = dict()
-        for oldname, newnames in divdict.iteritems():
+        for oldname, newnames in divdict.items():
             for newname in newnames:
                 if copy:
                     result[newname] = copymodule.copy( self.get(oldname) )
@@ -211,14 +216,14 @@ def _bundle_operator_generator(klass, methodname):
         if isinstance(other, object_bundle):
             if not sorted(self._b_objects.keys()) == sorted(other._b_objects.keys()):
                 raise ValueError("object bundles are incompatible")
-            for name, obj in self._b_objects.iteritems():
+            for name, obj in self._b_objects.items():
                 #result[name] = getattr(obj,methodname)(other._b_objects[name]) 
                 try:
                     result[name] = getattr(operator, methodname)(obj, other._b_objects[name])
                 except TypeError:
                     result[name] = NotImplemented
         else:
-            for name, obj in self._b_objects.iteritems():
+            for name, obj in self._b_objects.items():
                 #result[name] = getattr(obj,methodname)(other)
                 try:
                     result[name] = getattr(operator, methodname)(obj, other)
@@ -227,7 +232,7 @@ def _bundle_operator_generator(klass, methodname):
 
         # if any operation in a <op> b throws NotImplemented return a single NotImplemented
         # the interpreter may than try b <op> a
-        if any([ i is NotImplemented for i in result.values()]):
+        if any([ i is NotImplemented for i in list(result.values())]):
             return NotImplemented
         else:
             return bundle_classes[klass](**result)
@@ -237,14 +242,14 @@ def _bundle_operator_generator(klass, methodname):
 ################################################################################
 
 def _bundle_transpose(self):
-    level1keys = self.keys()
-    level1bundles = self.values()
+    level1keys = list(self.keys())
+    level1bundles = list(self.values())
     level2keys = []
 
-    for key in level1bundles[0].keys():
+    for key in list(level1bundles[0].keys()):
         commonkey = True
         for bdl in level1bundles[1:]:
-            if key not in bdl.keys():
+            if key not in list(bdl.keys()):
                 commonkey = False
         if commonkey:
             level2keys.append(key)
@@ -298,9 +303,9 @@ def bundle(*args, **objects):
     """
     values = []
     if len(args) != 0:
-        values.extend(args[0].values())
+        values.extend(list(args[0].values()))
 
-    values.extend( objects.values() )
+    values.extend( list(objects.values()) )
     types = [i.__class__ for i in values]
     if not all([i == types[0] for i in types]):
         raise ValueError("all objects must be of the same type")
@@ -318,12 +323,12 @@ def bundleize(method):
         similar to numpy.vectorize this returns a wrapper around method
         which can operate on bundle arguments.
     """
-    if not callable(method):
+    if not isinstance(method, collections.Callable):
         raise ValueError("method must be callable")
     
     def wrapper(*args, **kwargs):
         bundles = []
-        for arg in itertools.chain(args, kwargs.values()):
+        for arg in itertools.chain(args, list(kwargs.values())):
             if isinstance(arg, object_bundle):
                 bundles.append(arg)
         
@@ -331,11 +336,11 @@ def bundleize(method):
             return method(*args, **kwargs)
 
         for bdl in bundles[1:]:
-            if bdl.keys() != bundles[0].keys():
+            if list(bdl.keys()) != list(bundles[0].keys()):
                 raise ValueError("bundles have different keys")
 
         result = dict()
-        for key in bundles[0].keys():
+        for key in list(bundles[0].keys()):
             thisargs = []
             thiskwargs = {}
 
@@ -345,7 +350,7 @@ def bundleize(method):
                 else:
                     thisargs.append(arg)
             
-            for kwarg_name,kwarg_value in kwargs.iteritems():
+            for kwarg_name,kwarg_value in kwargs.items():
                 if isinstance(kwarg_value, object_bundle):
                     thiskwargs[kwarg_name] = kwarg_value.get(key)
                 else:
@@ -355,12 +360,12 @@ def bundleize(method):
 
         return bundle(**result)
     if hasattr(method, "func_name"):
-        wrapper.func_doc = "bundleized function '%s'\n" % method.func_name
+        wrapper.__doc__ = "bundleized function '%s'\n" % method.__name__
     else:
-        wrapper.func_doc = "bundleized unnamed function\n"
+        wrapper.__doc__ = "bundleized unnamed function\n"
 
-    if hasattr(method, "func_doc") and (method.func_doc is not None):
-        wrapper.func_doc += "\n" + method.func_doc
+    if hasattr(method, "func_doc") and (method.__doc__ is not None):
+        wrapper.__doc__ += "\n" + method.__doc__
 
     return wrapper
 
@@ -372,23 +377,23 @@ def threaded_bundleize(method, nthreads):
         threaded version of bundleize.
         FIXME: move this code into bundleize?
     """
-    if not callable(method):
+    if not isinstance(method, collections.Callable):
         raise ValueError("method must be callable")
 
     def wrapper(*args, **kwargs):
         bundles = []
-        for arg in itertools.chain(args, kwargs.values()):
+        for arg in itertools.chain(args, list(kwargs.values())):
             if isinstance(arg, object_bundle):
                 bundles.append(arg)
 
         for bdl in bundles[1:]:
-            if bdl.keys() != bundles[0].keys():
+            if list(bdl.keys()) != list(bundles[0].keys()):
                 raise ValueError("bundles have different keys")
 
 
         # setup queue, parse arguments and populate queue
         q = Queue()
-        for key in bundles[0].keys():
+        for key in list(bundles[0].keys()):
             thisargs = []
             thiskwargs = {}
 
@@ -398,7 +403,7 @@ def threaded_bundleize(method, nthreads):
                 else:
                     thisargs.append(arg)
             
-            for kwarg_name,kwarg_value in kwargs.iteritems():
+            for kwarg_name,kwarg_value in kwargs.items():
                 if isinstance(kwarg_value, object_bundle):
                     thiskwargs[kwarg_name] = kwarg_value.get(key)
                 else:
@@ -429,9 +434,9 @@ def threaded_bundleize(method, nthreads):
 
         return bundle(**result)
 
-    wrapper.func_doc = "bundleized function '%s' for %d threads\n" % (method.func_name, nthreads)
-    if hasattr(method, "func_doc") and (method.func_doc is not None):
-        wrapper.func_doc += "\n" + method.func_doc
+    wrapper.__doc__ = "bundleized function '%s' for %d threads\n" % (method.__name__, nthreads)
+    if hasattr(method, "func_doc") and (method.__doc__ is not None):
+        wrapper.__doc__ += "\n" + method.__doc__
 
     return wrapper
 
