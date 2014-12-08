@@ -250,7 +250,7 @@ class histogram(object):
             return
 
         # catch nans ...
-        if weights != None:
+        if weights is not None:
             assert len(weights) == len(sample)
             if n.isnan(weights).any():
                 raise ValueError("given weights contain nans!")
@@ -264,7 +264,7 @@ class histogram(object):
         nentries = len(sample)
         self.stats.values["nentries"] += nentries
         if nnans > 0:
-            if weights==None:
+            if weights is None:
                 self.stats.values["nans"] += nnans
                 self.stats.values["nans_wgt"] += nnans
                 self.stats.values["nans_sqwgt"] += nnans
@@ -281,7 +281,7 @@ class histogram(object):
 
             # ... and get rid of them
             sample = sample[goodmask]
-            if weights != None:
+            if weights is not None:
                 weights = weights[goodmask]
 
         self._h_newdataavailable = True
@@ -290,7 +290,7 @@ class histogram(object):
             # call numpy histogramdd to get the bincontents and add it to the local bincontent array
             histnd, edges = n.histogramdd(sample,bins=self._h_binedges, weights=weights)
             self._h_bincontent += histnd
-            if weights == None:
+            if weights is None:
                 self._h_squaredweights += histnd
             else:
                 histnd, edges = n.histogramdd(sample,bins=self._h_binedges,weights=n.power(weights,2))
