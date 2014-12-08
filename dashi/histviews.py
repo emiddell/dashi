@@ -51,14 +51,14 @@ class LegendProxy(object):
     def add_line(self, **kwargs):
         if not self._validate(**kwargs):
             return
-        line = mpl.lines.Line2D([0,0], [1,1], linewidth=kwargs.get('linewidth', 1), color=kwargs.get('color', None), linestyle=kwargs.get('ls', None))
+        line = mpl.lines.Line2D([0,0], [1,1], linewidth=kwargs.get('linewidth', None), color=kwargs.get('color', None), linestyle=kwargs.get('ls', None))
         self.artists.append(line)
         self.labels.append(kwargs.get('label', None))
     
     def add_fill(self, **kwargs):
         if not self._validate(**kwargs):
             return
-        rect = mpl.patches.Rectangle((0, 0), 1, 1, color=kwargs.get('color', None), alpha=kwargs.get('alpha', 1.))
+        rect = mpl.patches.Rectangle((0, 0), 1, 1, color=kwargs.get('color', None), alpha=kwargs.get('alpha', None))
         self.artists.append(rect)
         self.labels.append(kwargs.get('label', None))
     
