@@ -1,11 +1,7 @@
-.. dashi documentation master file, created by
-   sphinx-quickstart on Thu Aug 26 09:09:41 2010.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+=====
+dashi
+=====
 
-===================
-dashi documentation
-===================
 
 Elaborate data analyses are possible with the functionality offered by the great
 `numpy <http://numpy.scipy.org/>`_, `matplotlib
@@ -23,48 +19,8 @@ The easiest way to install dashi is with `pip`::
 
 	pip install https://github.com/emiddell/dashi/zipball/master
 
-.. Tutorials:
-    ==========
-
-.. .. toctree::
-   :maxdepth: 1
-
-   histograms
-   fitting
-   data_handling
-
-API Reference
-=============
-
-.. toctree::
-   :maxdepth: 2
-
-   api/index
-
 Documentation
 =============
 
-.. toctree::
-   :maxdepth: 1
-
-   data_handling
-
-
-Examples
-========
-
-.. toctree::
-   :maxdepth: 1
-
-   examples/hist1d
-   examples/hist2d
-   examples/fitting
-   examples/fitting_hist
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+- `Documentation <https://dashi.readthedocs.org/>`_ |docs|
+- `Examples <https://github.com/emiddell/dashi/tree/master/dashi/examples/>`_
