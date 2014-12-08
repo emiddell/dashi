@@ -2,6 +2,7 @@
 dashi
 =====
 
+|docs|
 
 Elaborate data analyses are possible with the functionality offered by the great
 `numpy <http://numpy.scipy.org/>`_, `matplotlib
@@ -22,5 +23,5 @@ The easiest way to install dashi is with `pip`::
 Documentation
 =============
 
-- `Documentation <https://dashi.readthedocs.org/>`_ |docs|
+- `Documentation <https://dashi.readthedocs.org/>`_
 - `Examples <https://github.com/emiddell/dashi/tree/master/dashi/examples/>`_
