@@ -1,7 +1,9 @@
 
-from matplotlib.ticker import Locator
+import matplotlib.ticker as mticker
+import matplotlib.transforms as mtransforms
+
 import math
-import numpy
+import numpy as np
  
 
 def coverage(dmin, dmax, lmin, lmax):
@@ -62,16 +64,16 @@ def wilk_ext(dmin, dmax, m, only_inside,
     result = None
 
     j = 1.0
-    while (j < numpy.inf):
+    while (j < np.inf):
         for q in map(float, Q):
             sm = simplicity_max(q,Q,j)
 
             if score(w,sm, 1,1,1) < best_score:
-                j = numpy.inf
+                j = np.inf
                 break
 
             k = 2.
-            while k < numpy.inf:
+            while k < np.inf:
                 dm = density_max(k,m) 
 
                 if score(w,sm,1,dm,1) < best_score:
@@ -80,7 +82,7 @@ def wilk_ext(dmin, dmax, m, only_inside,
                 delta = (dmax - dmin) / (k + 1.) / j / q
                 z = math.ceil(math.log10(delta))
 
-                while z < numpy.inf:
+                while z < np.inf:
                     step = j * q * 10.**z
                     cm = coverage_max(dmin, dmax, step * (k-1.))
                     
@@ -94,7 +96,7 @@ def wilk_ext(dmin, dmax, m, only_inside,
                         z += 1
                         break
 
-                    for start in numpy.arange(min_start,max_start+1):
+                    for start in np.arange(min_start,max_start+1):
                         lmin  = start * (step/j)
                         lmax  = lmin + step * (k-1.0)
                         lstep = step
@@ -120,7 +122,7 @@ def wilk_ext(dmin, dmax, m, only_inside,
     # end of j-while-loop
     return result 
 
-class ExtendedWilkinsonTickLocator(Locator):
+class ExtendedWilkinsonTickLocator(mticker.Locator):
     """
         places the ticks according to the extended Wilkinson algorithm
         (http://vis.stanford.edu/files/2010-TickLabels-InfoVis.pdf)
@@ -164,4 +166,41 @@ class ExtendedWilkinsonTickLocator(Locator):
 
         lmin,lmax,lstep,j,q,k,scr = wilk_ext(vmin, vmax, self.target_density, self.only_inside, self.Q, self.w)
         #print "Ticking:" + ((7*"%f ") % (lmin,lmax,lstep,j,q,k,scr))
-        return numpy.arange(lmin,lmax+lstep,lstep)
+        return np.arange(lmin,lmax+lstep,lstep)
+
+class PaddedLogLocator(mticker.LogLocator):
+    def view_limits(self, vmin, vmax):
+        """
+        Try to choose the view limits intelligently. In contrast to the stock
+        LogLocator, this version always pads by one decade so that the contents
+        of the largest and smallest histogram bins can be seen even if they
+        fall on a decade.
+        """
+        b = self._base
+
+        if vmax < vmin:
+            vmin, vmax = vmax, vmin
+
+        if self.axis.axes.name == 'polar':
+            vmax = math.ceil(math.log(vmax) / math.log(b))
+            vmin = b ** (vmax - self.numdecs)
+            return vmin, vmax
+
+        minpos = self.axis.get_minpos()
+
+        if minpos <= 0 or not np.isfinite(minpos):
+            raise ValueError(
+                "Data has no positive values, and therefore can not be "
+                "log-scaled.")
+
+        if vmin <= minpos:
+            vmin = minpos
+        
+        vmin = mticker.decade_down(vmin*(1-1e-10), self._base)
+        vmax = mticker.decade_up(vmax*(1+1e-10), self._base)
+
+        if vmin == vmax:
+            vmin = mticker.decade_down(vmin, self._base)
+            vmax = mticker.decade_up(vmax, self._base)
+        result = mtransforms.nonsingular(vmin, vmax)
+        return result

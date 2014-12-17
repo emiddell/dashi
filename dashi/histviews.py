@@ -4,10 +4,13 @@ import numpy as n
 import matplotlib as mpl
 from .infobox import InfoBox 
 from .odict import OrderedDict
+from .ticks import PaddedLogLocator
 import dashi.histfuncs
 import dashi as d
 import copy
 from functools import reduce
+from matplotlib import ticker as mticker
+from matplotlib import transforms as mtransforms
 
 def _h1label(h1):
     label = h1.labels[0]
@@ -82,7 +85,7 @@ class LegendProxy(object):
         if len(artists) > 0:
             return self.ax._legend(artists, labels, **kwargs)
         else:
-            return self.ax._legend(**kwargs)
+            return self.ax._legend(**kwargs) 
 
 def _h1_transform_bins(self, differential=False, cumulative=False, cumdir=1):
     """
@@ -116,6 +119,15 @@ def _h1_transform_bins(self, differential=False, cumulative=False, cumdir=1):
         binerror   = self.binerror
     return bincontent, binerror
 
+def _set_logscale(ax, log=True, axis='y'):
+    if log:
+        if 'x' in axis:
+            ax.xaxis.set_scale('log', nonposx='clip')
+            ax.xaxis.set_major_locator(PaddedLogLocator())
+        if 'y' in axis:
+            ax.yaxis.set_scale('log', nonposy='clip')
+            ax.yaxis.set_major_locator(PaddedLogLocator())
+
 def h1scatter(self, log=False, cumulative=False, cumdir=1, color=None, differential=False, **kwargs):
     """ use pylab.errorplot to plot a 1d histogram 
         
@@ -143,54 +155,18 @@ def h1scatter(self, log=False, cumulative=False, cumdir=1, color=None, different
         "linestyle" : 'None',
         "color" : color,
     }
-    # for log-scaled axes, clip the lower extent of the error bar
-    if log:
-        kw["yerr"] = [n.where(bincontent-binerror <= 0, abs(bincontent)*(1-1e-12), binerror), binerror]
-
-    patches = None
-
+    
     kw.update(kwargs)
-    if len(ax.lines) > 0:
-        minvalue,maxvalue = p.ylim()
-    else:
-        minvalue,maxvalue = float('inf'),-float('inf')
     
     if not hasattr(ax, "_legend_proxy"):
         ax._legend_proxy = LegendProxy(ax)
     label = kw.pop('label', self.title)
     ax._legend_proxy.add_scatter(label=label, **kw)
     
-    if not log:
-        if self.stats.weightsum > 0:
-            minvalue = min( bincontent.min(), minvalue )
-            maxvalue = max( 1.3*bincontent.max(), maxvalue)
-            patches = p.errorbar(self.bincenters, bincontent, **kw) 
-        else:
-            p.xlim(self.binedges[0], self.binedges[-1])
-    else:
-        ax = p.gca()
-        ax.set_yscale("log", nonposy='clip')
-        ymi,yma = p.ylim()
-        if len(p.gca().get_lines()) != 0:
-            ymi = min([i._y[i._y > 0].min() for i in p.gca().get_lines()])
-        if ymi == 0:
-            ymi = float('inf')
-        if self.stats.weightsum > 0:
-            lower = bincontent[bincontent > 0]-binerror[bincontent>0]
-            nonzerolower = lower[lower>0]
-            if len(nonzerolower)>0:
-                if nonzerolower.min() > 0:
-                    minvalue = min(0.1 * nonzerolower.min(), ymi)
-                else:
-                    minvalue = min(0.05* lower.min(), ymi)
-            else:
-                minvalue = ymi
-            maxvalue = max( n.power(10, n.ceil (n.log10(100. * bincontent.max()))), maxvalue)
-            patches = p.errorbar(self.bincenters, bincontent, **kw) 
-        else:
-            p.xlim(self.binedges[0], self.binedges[-1])
+    _set_logscale(ax, log)
     
-    p.ylim(minvalue, maxvalue)
+    patches = p.errorbar(self.bincenters, bincontent, **kw)
+    
     _h1label(self)
 
     return patches
@@ -240,18 +216,8 @@ def h1band(self, log=False, type="steps", differential=False, cumulative=False, 
     else:
         raise ValueError("did't understand given type %s" % type)
 
-    minvalue,maxvalue = p.ylim()
-    if log:
-        ax = p.gca()
-        ax.set_yscale("log", nonposy='clip')
-        ymi,yma = p.ylim()
-        nonemptybins = bincontent[bincontent > 0]
-        if len(nonemptybins) > 0:
-            minvalue = min(0.1 * nonemptybins.min(), ymi)
-            maxvalue = max( n.power(10, n.ceil (n.log10(100. * nonemptybins.max()))), maxvalue)
-    else:
-        minvalue = min( bincontent.min(), minvalue )
-        maxvalue = max( 1.3*bincontent.max(), maxvalue)
+    ax = p.gca()
+    _set_logscale(ax, log)
 
     ax = p.gca()
     if not hasattr(ax, "_legend_proxy"):
@@ -264,7 +230,7 @@ def h1band(self, log=False, type="steps", differential=False, cumulative=False, 
     artists = p.fill_between(x, y1, y2, **kw)
 
     
-    p.ylim(minvalue, maxvalue)
+    # p.ylim(minvalue, maxvalue)
     _h1label(self)
     
     return artists
@@ -306,23 +272,11 @@ def h1line(self, log=False, cumulative=False, differential=False, cumdir=1, fill
     ax = p.gca()
     if orientation == 'vertical':
         xpoints, ypoints = ypoints, xpoints
-        ylim = p.xlim
-        set_yscale = lambda v: ax.set_xscale(v, nonposx='clip')
+        axis_name = 'x'
     else:
-        ylim = p.ylim
-        set_yscale = lambda v: ax.set_yscale(v, nonposy='clip')
+        axis_name = 'y'
 
-    minvalue,maxvalue = ylim()
-    if minvalue == 0 and maxvalue == 1:
-        maxvalue=0.
-    if log:
-        set_yscale("log")
-        if len(nonzerobc) > 0:
-            minvalue = min( n.power(10, n.floor(n.log10(0.1 * nonzerobc.min()))) , minvalue)
-            maxvalue = max( n.power(10, n.ceil (n.log10(100. * bincontent.max()))), maxvalue)
-            ypoints[ypoints == 0] = minvalue
-    else:
-        set_yscale("linear")
+    _set_yscale(ax, log, axis=axis_name)
     
     if not hasattr(ax, "_legend_proxy"):
         ax._legend_proxy = LegendProxy(ax)
@@ -339,16 +293,11 @@ def h1line(self, log=False, cumulative=False, differential=False, cumdir=1, fill
         kw = {"ec":"k", "fc": color}
         kw.update(kwargs)
         artists = p.fill(xpoints, ypoints, **kw) 
-        minvalue = min( bincontent.min(), minvalue )
-        maxvalue = max( 1.3*bincontent.max() , maxvalue )
     else:
         kw = {"color":color}
         kw.update(kwargs)
         artists = p.plot(xpoints, ypoints, "k-", **kw) 
-        minvalue = min( bincontent.min(), minvalue )
-        maxvalue = max( 1.3*bincontent.max() , maxvalue )
-
-    ylim(minvalue, maxvalue)
+    
     _h1label(self)
     
     return artists
@@ -593,57 +542,32 @@ def p2dscatter(self, log=False, color=None, label=None, orientation='horizontal'
 
           (all other kwargs will be passed to pylab.errobar)
     """
+    if len(self.x == 0):
+        return
 
     ax = p.gca()
     if color is None:
         color = next(ax._get_lines.color_cycle)
     
     kw = {"xerr" : self.xerr, "yerr" : self.yerr, "fmt" : "k", "capsize" : 0., "linestyle" : 'None', "color" : color}
-    # for log-scaled axes, clip the lower extent of the error bar
-    if log:
-        kw["yerr"] = [n.where(self.y-self.yerr <= 0, abs(self.y)*(1-1e-12), self.yerr), self.yerr]
     kw.update(kwargs)
-
-    if len(ax.lines) > 0:
-        minvalue,maxvalue = p.ylim()
-    else:
-        minvalue,maxvalue = float('inf'),-float('inf')
     
     if orientation == 'vertical':
-        set_xlim, set_ylim = ax.set_ylim, ax.set_xlim
-        get_xlim, get_ylim = ax.get_ylim, ax.get_xlim
-        set_yscale = ax.set_xscale
         x, y = self.y, self.x
         kw["xerr"], kw["yerr"] = kw["yerr"], kw["xerr"]
+        axis_name = 'x'
     else:
-        set_xlim, set_ylim = ax.set_xlim, ax.set_ylim
-        get_xlim, get_ylim = ax.get_xlim, ax.get_ylim
-        set_yscale = ax.set_yscale
         x, y = self.x, self.y
+        axis_name = 'y'
     
-    if len(self.x > 0):
-        if not log:
-            if n.abs(self.y).sum() > 0:
-                minvalue = min( self.y.min(), minvalue )
-                maxvalue = max( 1.3*self.y.max(), maxvalue)
-                p.errorbar(x, y, **kw) 
-            else:
-                set_xlim(self.x[0], self.x[-1])
-        else:
-            set_yscale("log", nonposy='clip')
-            ymi,yma = get_ylim()
-            if n.abs(self.y).sum() > 0:
-                minvalue = min(0.1 * self.y[self.y > 0].min(), ymi)
-                maxvalue = max( n.power(10, n.ceil (n.log10(100. * self.y.max()))), maxvalue)
-                p.errorbar(x, y, **kw) 
-            else:
-                set_xlim(self.x[0], self.x[-1])
+    _set_logscale(ax, log, axis=axis_name)
+    
+    p.errorbar(x, y, **kw) 
         
-        if not hasattr(ax, "_legend_proxy"):
-            ax._legend_proxy = LegendProxy(ax)
-        ax._legend_proxy.add_scatter(label=label, color=color)
-        
-        set_ylim(minvalue, maxvalue)
+    if not hasattr(ax, "_legend_proxy"):
+        ax._legend_proxy = LegendProxy(ax)
+    ax._legend_proxy.add_scatter(label=label, color=color)
+    
     _h2label(self, orientation)
 
 def g2dimshow(self, **kwargs):
