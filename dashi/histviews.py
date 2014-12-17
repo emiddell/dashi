@@ -261,11 +261,13 @@ def h1band(self, log=False, type="steps", differential=False, cumulative=False, 
 
     kw = {}
     kw.update(kwargs)
-    p.fill_between(x, y1, y2, **kw)
+    artists = p.fill_between(x, y1, y2, **kw)
 
     
     p.ylim(minvalue, maxvalue)
     _h1label(self)
+    
+    return artists
 
 def h1line(self, log=False, cumulative=False, differential=False, cumdir=1, filled=False, color=None, orientation='horizontal', **kwargs):
     """ plot the histogram's  bincontent with a line using pylab.plot. 
@@ -336,18 +338,20 @@ def h1line(self, log=False, cumulative=False, differential=False, cumdir=1, fill
     if filled:
         kw = {"ec":"k", "fc": color}
         kw.update(kwargs)
-        p.fill(xpoints, ypoints, **kw) 
+        artists = p.fill(xpoints, ypoints, **kw) 
         minvalue = min( bincontent.min(), minvalue )
         maxvalue = max( 1.3*bincontent.max() , maxvalue )
     else:
         kw = {"color":color}
         kw.update(kwargs)
-        p.plot(xpoints, ypoints, "k-", **kw) 
+        artists = p.plot(xpoints, ypoints, "k-", **kw) 
         minvalue = min( bincontent.min(), minvalue )
         maxvalue = max( 1.3*bincontent.max() , maxvalue )
 
     ylim(minvalue, maxvalue)
     _h1label(self)
+    
+    return artists
 
 def _h2_transform_bins(self, kwargs):
     """
