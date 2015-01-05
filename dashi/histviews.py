@@ -122,10 +122,10 @@ def _h1_transform_bins(self, differential=False, cumulative=False, cumdir=1):
 def _set_logscale(ax, log=True, axis='y'):
     if log:
         if 'x' in axis:
-            ax.xaxis.set_scale('log', nonposx='clip')
+            ax.set_xscale('log', nonposx='clip')
             ax.xaxis.set_major_locator(PaddedLogLocator())
         if 'y' in axis:
-            ax.yaxis.set_scale('log', nonposy='clip')
+            ax.set_yscale('log', nonposy='clip')
             ax.yaxis.set_major_locator(PaddedLogLocator())
 
 def h1scatter(self, log=False, cumulative=False, cumdir=1, color=None, differential=False, **kwargs):
@@ -276,7 +276,7 @@ def h1line(self, log=False, cumulative=False, differential=False, cumdir=1, fill
     else:
         axis_name = 'y'
 
-    _set_yscale(ax, log, axis=axis_name)
+    _set_logscale(ax, log, axis=axis_name)
     
     if not hasattr(ax, "_legend_proxy"):
         ax._legend_proxy = LegendProxy(ax)
