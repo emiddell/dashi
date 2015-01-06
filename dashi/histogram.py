@@ -132,6 +132,32 @@ class histogram(object):
     _h_bincenters = property(lambda self : [ 0.5*(edges[2:-1] + edges[1:-2]) for edges in self._h_binedges],
                              doc="a list of arrays containing the centers of all bins")
     
+    binedges   = property(lambda self : [i[1:-1] for i in self._h_binedges], None)
+    bincenters = property(lambda self : self._h_bincenters, None)
+    binerror   = property(lambda self : n.sqrt(self._h_squaredweights[self._h_visiblerange]), None)
+    
+    @staticmethod
+    def _slice_slab(array, pos):
+        ndim = array.ndim
+        idx = tuple(tuple(pos if i==j else slice(None) for i in range(ndim)) for j in range(ndim))
+        return tuple(array[i] for i in idx)
+    
+    @property
+    def underflow(self):
+        return self._slice_slab(self._h_bincontent, slice(0,1))
+    
+    @property
+    def underflow_squaredweights(self):
+        return self._slice_slab(self._h_squaredweights, slice(0,1))
+    
+    @property
+    def overflow(self):
+        return self._slice_slab(self._h_bincontent, slice(-1, None))
+    
+    @property
+    def overflow_squaredweights(self):
+        return self._slice_slab(self._h_squaredweights, slice(-1, None))
+    
     def __init__(self, ndim, binedges, bincontent=None, squaredweights=None, labels=None, title=None):
         """
             Constructor for an empty n-dimensional histogram. The module 
@@ -513,9 +539,6 @@ class hist1d(histogram):
     xerr       = property(lambda self : self._h_binwidths[0]/2.)
     binerror   = property(lambda self : n.sqrt(self._h_squaredweights[1:-1]), None)
     
-    #underflow  = property(lambda self : self._h_bincontent[0], None) 
-    #overflow   = property(lambda self : self._h_bincontent[-1], None) 
-    
     def empty_like(self):
         return hist1d(self._h_binedges[0].copy(), label=self.labels[0], title=self.title)
 
@@ -594,11 +617,8 @@ class hist2d(histogram):
     def __init__(self, binedges, bincontent=None, squaredweights=None, labels=None, title=None):
         histogram.__init__(self, 2, binedges, bincontent=bincontent, squaredweights=squaredweights, labels=labels, title=title)
     
-    binedges   = property(lambda self : [i[1:-1] for i in self._h_binedges], None)
-    bincenters = property(lambda self : self._h_bincenters, None)
     xerr       = property(lambda self : self._h_binwidths[0]/2.)
     yerr       = property(lambda self : self._h_binwidths[1]/2.)
-    binerror   = property(lambda self : n.sqrt(self._h_squaredweights[self._h_visiblerange]), None)
     
     def empty_like(self):
         return hist2d(self._h_binedges, labels=self.labels, title=self.title)

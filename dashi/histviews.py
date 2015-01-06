@@ -101,16 +101,9 @@ def _h1_transform_bins(self, differential=False, cumulative=False, cumdir=1):
     if (cumulative and differential):
         raise ValueError("cumulative and differential are mutually exclusive!")
     if cumulative:
-        if cumdir == 1:
-            vis = slice(1, -1)
-            bincontent = n.cumsum(self._h_bincontent)[vis]
-            binerror   = n.sqrt(n.cumsum(self._h_squaredweights))[vis]
-        elif cumdir == -1:
-            vis = slice(0, -2)
-            bincontent = self._h_bincontent.sum() - n.cumsum(self._h_bincontent)[vis]
-            binerror  = n.sqrt( (self._h_squaredweights).sum() - n.cumsum(self._h_squaredweights)[vis] )
-        else:
-            raise ValueError("cumdir should be 1 or -1")
+        op = ['>', '<'][cumdir > 0]
+        bincontent = dashi.histfuncs.cumulative_bincontent(self, op)
+        binerror = dashi.histfuncs.cumulative_binerror(self, op)
     elif differential:
         bincontent = self.bincontent/self.binwidths
         binerror   = self.binerror/self.binwidths
@@ -308,9 +301,11 @@ def _h2_transform_bins(self, kwargs):
     """
     bincontent = self.bincontent.T.copy()
     
-    cumdir = kwargs.pop("cumdir", None)
-    if cumdir is not None:
-        bincontent = self._h_bincontent.cumsum(axis=1).cumsum(axis=0)[1:-1,1:-1].T
+    cumulative = kwargs.pop("cumulative", False)
+    cumdir = kwargs.pop("cumdir", 1)
+    if cumulative:
+        op = ['>', '<'][cumdir > 0]
+        bincontent = dashi.histfuncs.cumulative_bincontent(self, op).T
     
     _process_colorscale(bincontent, kwargs)
     return bincontent, kwargs

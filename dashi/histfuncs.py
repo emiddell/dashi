@@ -6,16 +6,77 @@ from logging import getLogger
 import collections
 
 
-def cumsum(narray, operator):
+def cumsum(narray, operator='<', axis=None):
     """calculates n.cumsum of narray for cuts depending on the operator ('<' or '>') as e.g. E < 10 or E > 10"""
     if operator == '<':
-        return n.cumsum(narray)
+        return n.cumsum(narray, axis=axis)
     elif operator == '>':
-        return (n.cumsum(narray[::-1]))[::-1]
+        if axis is None:
+            idx = slice(None,None,-1)
+        else:
+            idx = [slice(None)]*narray.ndim
+            idx[axis] = slice(None,None,-1)
+        return (n.cumsum(narray[idx], axis=axis))[idx]
     else:
-        print("Non valid operator chosen! Please choose '<' or '>'")
+        raise ValueError("Non valid operator chosen! Please choose '<' or '>'")
 
+def _cumsum_with_overflow(bincontent, overflow, func):
+    """
+    Emulate the result of a cumulative sum over the entire histogram backing
+    array given only disjoint views into the visible *bincontent* and the
+    *overflow* (a slice in each dimension).
+    """
+    cum = bincontent
+    ndim = bincontent.ndim
+    # TODO: take axes to sum over as a parameter
+    axes = range(ndim-1, -1, -1)
+    for i, axis in enumerate(axes):
+        # overflow should be a slab with one trivial dimension
+        oflow = overflow[axis]
+        assert(oflow.ndim == cum.ndim)
+        assert(oflow.shape[axis] == 1)
+    
+        # sum over the visible part of the array
+        cum = func(cum, axis=axis)
+        # apply all the sums taken so far to the overflow slab, then add only
+        # the part that is either in the overflow bin for this dimension, or
+        # in a visible bin of another dimension
+        idx = [slice(1,-1)]*ndim
+        idx[axis] = slice(0,1)
+        cum += n.apply_over_axes(func, oflow, axes[:i])[idx]
+        
+    return cum
 
+def cumulative_bincontent(histogram, operator='<'):
+    """
+    Return the cumulative sum of bin entries in the histogram.
+    
+    :param operator: either '<' (sum from the left) or '>' (sum from the right)
+    :returns: an array of the same shape as histogram.bincontent
+    """
+    func = lambda narray, axis: cumsum(narray, operator=operator, axis=axis)
+    if operator == '<':
+        return _cumsum_with_overflow(histogram.bincontent, histogram.underflow, func)
+    elif operator == '>':
+        return _cumsum_with_overflow(histogram.bincontent, histogram.overflow, func)
+    else:
+        raise ValueError("Non valid operator chosen! Please choose '<' or '>'")
+
+def cumulative_binerror(histogram, operator='<'):
+    """
+    Return the error on the cumulative sum of bin entries in the histogram.
+    
+    :param operator: either '<' (sum from the left) or '>' (sum from the right)
+    :returns: an array of the same shape as histogram.bincontent
+    """
+    func = lambda narray, axis: cumsum(narray, operator=operator, axis=axis)
+    if operator == '<':
+        return n.sqrt(_cumsum_with_overflow(histogram.squaredweights, histogram.underflow_squaredweights, func))
+    elif operator == '>':
+        return n.sqrt(_cumsum_with_overflow(histogram.squaredweights, histogram.overflow_squaredweights, func))
+    else:
+        raise ValueError("Non valid operator chosen! Please choose '<' or '>'")
+     
 def project_bincontent(histogram, dim):
     # sum entries in all other dimensions
     dims = list(range(histogram.ndim))
