@@ -210,6 +210,19 @@ def test_cumulative_bincontent():
         h.fill(sample)
         verify_cumsum(h)
 
+def test_rebin():
+    for ndim in range(1, 5):
+        bins = [n.linspace(0, 1, i+10) for i in range(ndim)]
+        h = d.histogram.create(ndim, bins)
+        
+        sample = tuple((n.random.uniform(-1, 2, size=10000) for i in range(ndim)))
+        h.fill(sample)
+        
+        for axis in range(ndim):
+            hb = h.rebin_axis(axis, 2)
+            assert(hb._h_bincontent.sum() == h._h_bincontent.sum())
+            assert(hb._h_squaredweights.sum() == h._h_squaredweights.sum())
+
     #h2 = h.hist2d(...)
 #    h2.profile(axis, method="stdev") # or "gaussian" axis=0,1, maybe define methods profilex y 
 #    h2.scatter()

@@ -401,66 +401,6 @@ def histdiff(h1, h2, ylabel="(h1-h2)/h1", mask_infs=True, relative_error=True):
     else:
         raise ValueError("can only operator on 1 and 2 dimensional histograms")
 
-def Rebin(self, bins_to_merge):
-    """ rebinning the histogram (was tried to write by Arne, don't blame Eike!)
-    gives back new rebinned histogram (old one is not overwritten)
-    if number of bins is not a multiple of number, excess bins are thrown in the overflow bin 
-    bins_to_merge: number of bins to merge to new bin (standard value = 2)
-    
-    bin boundaries: -inf  1   2   3   4   +inf      
-    bins          :        |1| |2| |3|  
-    num(bin boundaries) = num(bins) + 3
-    """
-
-    overflow = (len(self._h_binedges[0]) - 3) % bins_to_merge
-    if overflow > 0:
-        getLogger("dashi.histfuncs").warn("%d %s at the end of the histogram are added to the overflow bin, because they don't fit to the new bin number!", overflow, ["bin", "bins"][overflow > 1])
-    
-    if bins_to_merge >= ( len(self._h_binedges[0]) - 3 ):
-        raise ValueError("The number of bins to merge in one new bins is larger than bin number in the histo!")
-
-    # calculate new binedges:
-    new_binedges_bool = n.ones( len( self._h_binedges[0] ), dtype=n.bool) # filter the new bin_edges from _h_binedges      
-    new_bin_number = len( self._h_binedges[0] ) - 3 - ( len( self._h_binedges[0] ) - 3 ) % bins_to_merge # new bin number
-
-    for index in range( len(self._h_binedges[0]) ) :
-        if (  index > 0 and index < ( len(self._h_binedges[0]) - 1 )
-              and ( ( (index-1) % bins_to_merge != 0 ) or index > new_bin_number + 1 )  ) :      
-            
-            new_binedges_bool[index]=False
-    
-    new_binedges = self._h_binedges[0][new_binedges_bool]
-    
-    # calculate new bincontent and squaredweights:
-    new_bincontent =  [] 
-    new_squaredweights = []
-    i, j, sum_content, sum_weight = 0, 0, 0, 0
-    while i < len(self._h_bincontent):           
-        sum_content = sum_content + self._h_bincontent[i]
-        sum_weight = sum_weight + self._h_squaredweights[i]
-        if (j % bins_to_merge)==0 or i == len(self._h_bincontent) - 1:
-            new_bincontent.append(sum_content)
-            new_squaredweights.append(sum_weight)
-            sum_content, sum_weight, j = 0, 0, 0
-        i+=1
-        j+=1
-
-    new_bincontent = n.array( new_bincontent, dtype="float" )
-    if ( abs( self._h_bincontent.sum() - new_bincontent.sum() ) > 1e-8*self._h_bincontent.sum() ):
-        raise ValueError("Bin content of original and new histo (including overflow bins) is not the same!\n old = %10E new = %10E diff = %10E" % (self._h_bincontent.sum(), new_bincontent.sum(), self._h_bincontent.sum() - new_bincontent.sum() )  )
-
-    new_squaredweights = n.array( new_squaredweights, dtype="float" )
-    if ( abs( self._h_squaredweights.sum() - new_squaredweights.sum() ) > 1e-8*self._h_squaredweights.sum() ):
-        raise ValueError("SquaredWeights of original and new histo (including overflow bins) is not the same!\n old = %10E new = %10E diff=%10E" % (self._h_squaredweights.sum(), new_squaredweights.sum(), self._h_squaredweights.sum() - new_squaredweights.sum() ) )
-    
-    # create new histogram with new properties:
-    new_histo = d.histogram.hist1d( new_binedges, label=self.labels[0], title=self.title )
-       
-    new_histo._h_bincontent[:] = new_bincontent[:]   
-    new_histo._h_squaredweights[:] = new_squaredweights[:]
-    
-    return new_histo 
-
 def kstest(h1a,h1b, skipemptybins=False):
     """
         perform a Kolmogorov-Smirnov-test on h1a and h1b.

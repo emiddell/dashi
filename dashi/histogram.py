@@ -134,6 +134,7 @@ class histogram(object):
     
     binedges   = property(lambda self : [i[1:-1] for i in self._h_binedges], None)
     bincenters = property(lambda self : self._h_bincenters, None)
+    binwidths = property(lambda self : self._h_binwidths, None)
     binerror   = property(lambda self : n.sqrt(self._h_squaredweights[self._h_visiblerange]), None)
     
     @staticmethod
@@ -233,8 +234,6 @@ class histogram(object):
         self.nbins           = tuple([i-2 for i in self._h_bincontent.shape])
 
         self._h_newdataavailable = True # internal trigger for the recalculation of dervived values (e.g. errors, stats,..)
-
-
 
     def fill(self, sample, weights=None):
         """
@@ -523,7 +522,76 @@ class histogram(object):
 
         return new
 
-
+    def rebin_axis(self, axis, bins_to_merge=2):
+        """
+        Re-bin the histogram along the given *axis* by combining groups of
+        *bins_to_merge* bins. If the number of bins is not a multiple of
+        *bins_to_merge*, the bins in the remainder are added to the overflow.
+        
+        :param axis: an integer between 0 and ndim
+        :param bins_to_merge: number of bins to combine
+        :returns: a new histogram with fewer bins along *axis*
+        """
+        assert(axis >= 0 and axis < self.ndim)
+        
+        if bins_to_merge > self.nbins[axis]:
+            raise ValueError("bins_to_merge (%d) is greater than the number of bins in dimenson %d (%d)" % (bins_to_merge, axis, self.nbins[axis]))
+        
+        nbins = self.nbins[axis] / bins_to_merge
+        overflow = self.nbins[axis] % bins_to_merge
+        
+        shape = list(self._h_bincontent.shape)
+        shape[axis] = shape[axis] - (self.nbins[axis] - nbins)
+        
+        bincontent = n.empty(tuple(shape), dtype=self._h_bincontent.dtype)
+        squaredweights = n.empty(tuple(shape), dtype=self._h_bincontent.dtype)
+        arrays = ((self._h_bincontent, bincontent), (self._h_squaredweights, squaredweights))
+        
+        def slice_axis(start=None, stop=None, step=None):
+            index = [slice(None)]*self.ndim
+            index[axis] = slice(start, stop, step)
+            return index
+        
+        # copy underflow bin in this dimension
+        start = self._h_visiblerange[axis].start
+        if start is not None:
+            for source, dest in arrays:
+                dest[slice_axis(None, start)] = source[slice_axis(None, start)]
+        
+        # copy overflow bin
+        stop = self._h_visiblerange[axis].stop
+        ostop = stop
+        # if bins are not evenly divisible by bins_to_merge, lump the remainder
+        # in with the overflow
+        if overflow > 0:
+            if stop is None:
+                ostop = -overflow
+            else:
+                ostop = stop - overflow
+            for source, dest in arrays:
+                dest[slice_axis(stop, None)] = source[slice_axis(ostop, None)].sum(axis=axis, keepdims=True)
+        # otherwise, just copy the overflow bin
+        elif stop is not None:
+            for source, dest in arrays:
+                dest[slice_axis(stop, None)] = source[slice_axis(stop, None)]
+        
+        # sum over bins_to_merge bins in the visible range of this dimension
+        shape = list(self._h_bincontent.shape)
+        shape[axis] = self.nbins[axis] / bins_to_merge
+        shape.insert(axis+1, bins_to_merge)
+        for source, dest in arrays:
+            dest[slice_axis(start, stop)] = source[slice_axis(start, ostop)].reshape(shape).sum(axis=axis+1)
+        
+        edges = self._h_binedges[axis]
+        subedges = n.empty(dest.shape[axis]+1)
+        subedges[0] = edges[0]
+        subedges[-1] = edges[-1]
+        subedges[start:stop] = edges[start:stop:bins_to_merge]
+        edges = list(self._h_binedges)
+        edges[axis] = subedges
+        
+        return create(self.ndim, edges, bincontent, squaredweights)
+        
 class hist1d(histogram):
     """
         one dimensional specialization for :class:`dashi.histogram.histogram`
@@ -582,17 +650,8 @@ class hist1d(histogram):
         else:
             return self / (norm*self.stats.weightsum)
 
-    
-
     def rebin(self, bins_to_merge=2):
-            """ rebins the histogram (was tried to be written by Arne, so don't blame Eike!)
-            gives back new rebinned histogram (old one is not overwritten)
-            if number of bins is not a multiple of number, excess bins are thrown in the overflow bin 
-            
-            bins_to_merge: number of bins to merge to new bin (standard value = 2)"""
-            
-            # print "Number of bins to merge to a one new bin = ", bins_to_merge        
-            return histfuncs.Rebin(self, bins_to_merge)          
+        return self.rebin_axis(0, bins_to_merge)
 
     @property
     def func(self):
@@ -630,3 +689,17 @@ class hist2d(histogram):
             return self / ( norm* ( ((self.bincontent*self._h_binwidths[1]).transpose()*self._h_binwidths[0]).sum() )  ) 
         else:
             return self / (norm*self.stats.weightsum)
+
+def create(ndim, binedges, bincontent=None, squaredweights=None):
+    """
+    convenience method: create an *ndim*-dimensional histogram
+    """
+    kwargs = dict(bincontent=bincontent, squaredweights=squaredweights)
+    if ndim == 1:
+        new = hist1d(binedges[0], **kwargs)
+    elif ndim == 2:
+        new = hist2d(binedges, **kwargs)
+    else:
+        new = histogram(ndim, binedges, **kwargs)
+    
+    return new
