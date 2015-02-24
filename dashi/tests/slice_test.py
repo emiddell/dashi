@@ -4,7 +4,7 @@ import numpy
 
 def test_slice_1d():
     bins = [numpy.logspace(3, 8, 51), [-1, 10], numpy.linspace(-1, 1, 21)]
-    h = dashi.histogram.histogram(3, bins)
+    h = dashi.histogram.histogram(3, bins, labels=['foo', 'bar', 'baz'])
     h.fill(([2e3, 1e6], [1,1], [1,1]))
     
     assert(h.stats.weightsum == 2)
@@ -14,6 +14,14 @@ def test_slice_1d():
     
     assert(len(hsub._h_binedges[0]) == len(h._h_binedges[0]) - (sel[0].start-1))
     assert(hsub.stats.weightsum == 1)
+    assert(hsub.labels == h.labels)
+    
+    # Check that labels are copied
+    sel = (1, slice(None), slice(None))
+    assert(h[sel].labels == h.labels[1:])
+    
+    sel = (1, 1, slice(None))
+    assert(h[sel].labels == [h.labels[2]])
 
 def test_slice_normalization():
     bins = [numpy.logspace(3, 8, 51), [-1, 10], numpy.linspace(-1, 1, 21)]

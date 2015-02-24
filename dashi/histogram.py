@@ -440,6 +440,7 @@ class histogram(object):
         """
         subedges = list()
         target_slice = list()
+        labels = list()
         for i, sl in enumerate(slice_):
             if isinstance(sl, slice):
                 # we don't handle strides at the moment
@@ -467,6 +468,7 @@ class histogram(object):
                     subedge = n.hstack(to_cat)
                 subedges.append(subedge)
                 target_slice.append(target)
+                labels.append(self.labels[i])
         
         # share backing arrays if possible
         view = all(s == slice(None) for s in target_slice)
@@ -475,14 +477,10 @@ class histogram(object):
             kwargs = dict(bincontent=self._h_bincontent[slice_], squaredweights=self._h_squaredweights[slice_])
         else:
             kwargs = dict()
+        kwargs['labels'] = labels
         
         ndim = len(subedges)
-        if ndim == 1:
-            new = hist1d(subedges[0], **kwargs)
-        elif ndim == 2:
-            new = hist2d(subedges, **kwargs)
-        else:
-            new = histogram(ndim, subedges, **kwargs)
+        new = create(ndim, subedges, **kwargs)
         
         if not view:
             new._h_bincontent[target_slice] = self._h_bincontent[slice_]
@@ -499,12 +497,7 @@ class histogram(object):
             raise ValueError("Can't slice dimensions %s out of a %d-d histogram" % (dims, self.ndim))
         dims.sort()
         subedges = [self._h_binedges[i] for i in dims]
-        if len(dims) == 1:
-            new = hist1d(subedges[0])
-        elif len(dims) == 2:
-            new = hist2d(subedges)
-        else:
-            new = histogram(len(dims), subedges)
+        new = create(len(dims), subedges, labels=[self.labels[i] for i in dims])
     
         new._h_bincontent = self._h_bincontent
         new._h_squaredweights = self._h_squaredweights
@@ -590,7 +583,7 @@ class histogram(object):
         edges = list(self._h_binedges)
         edges[axis] = subedges
         
-        return create(self.ndim, edges, bincontent, squaredweights)
+        return create(self.ndim, edges, bincontent, squaredweights, self.labels)
         
 class hist1d(histogram):
     """
@@ -690,16 +683,18 @@ class hist2d(histogram):
         else:
             return self / (norm*self.stats.weightsum)
 
-def create(ndim, binedges, bincontent=None, squaredweights=None):
+def create(ndim, binedges, bincontent=None, squaredweights=None, labels=None):
     """
     convenience method: create an *ndim*-dimensional histogram
     """
     kwargs = dict(bincontent=bincontent, squaredweights=squaredweights)
+    if labels is None:
+        labels = [None]*ndim
     if ndim == 1:
-        new = hist1d(binedges[0], **kwargs)
+        new = hist1d(binedges[0], label=labels[0], **kwargs)
     elif ndim == 2:
-        new = hist2d(binedges, **kwargs)
+        new = hist2d(binedges, labels=labels, **kwargs)
     else:
-        new = histogram(ndim, binedges, **kwargs)
+        new = histogram(ndim, binedges, labels=labels, **kwargs)
     
     return new
