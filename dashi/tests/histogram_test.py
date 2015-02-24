@@ -179,7 +179,49 @@ def test_plotting():
     assert os.path.exists(fname)
     os.remove(fname)
 
+def test_cumulative_bincontent():
+    """
+    Ensure that the cumulative sum over visible bins and over/underflow is
+    equivalent to a cumulative sum over the entire histogram backing array.
+    """
+    def verify_cumsum(h):
+        for op in '<', '>':
+            for kind in 'bincontent', 'binerror':
+                func = lambda arr, axis: d.histfuncs.cumsum(arr, operator=op, axis=axis)
+                if kind == 'bincontent':
+                    cum = d.histfuncs.cumulative_bincontent(h, op)
+                    cum_full = n.apply_over_axes(func, h._h_bincontent, range(h.ndim-1, -1, -1))[h._h_visiblerange]
+                else:
+                    cum = d.histfuncs.cumulative_binerror(h, op)
+                    cum_full = n.sqrt(n.apply_over_axes(func, h._h_squaredweights, range(h.ndim-1, -1, -1))[h._h_visiblerange])
+                assert((cum == cum_full).all())
+                # assert(False)
+    
+    for ndim in range(1, 5):
+        bins = [n.linspace(0, 1, i+3) for i in range(ndim)]
+        if ndim == 1:
+            h = d.histogram.hist1d(bins[0])
+        elif ndim == 2:
+            h = d.histogram.hist2d(bins)
+        else:
+            h = d.histogram.histogram(ndim, bins)
+        
+        sample = tuple((n.random.uniform(-1, 2, size=100) for i in range(ndim)))
+        h.fill(sample)
+        verify_cumsum(h)
 
+def test_rebin():
+    for ndim in range(1, 5):
+        bins = [n.linspace(0, 1, i+10) for i in range(ndim)]
+        h = d.histogram.create(ndim, bins)
+        
+        sample = tuple((n.random.uniform(-1, 2, size=10000) for i in range(ndim)))
+        h.fill(sample)
+        
+        for axis in range(ndim):
+            hb = h.rebin_axis(axis, 2)
+            assert(hb._h_bincontent.sum() == h._h_bincontent.sum())
+            assert(hb._h_squaredweights.sum() == h._h_squaredweights.sum())
 
     #h2 = h.hist2d(...)
 #    h2.profile(axis, method="stdev") # or "gaussian" axis=0,1, maybe define methods profilex y 
