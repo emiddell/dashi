@@ -139,7 +139,7 @@ class powerlaw(model):
         
         dN/dx = N \frac{-\gamma - 1}{x_{min}} \frac{x}{x_{min}}**\gamma
         
-    where :math:`x_{min} > 0` and :math:`\gamma \lt -1`
+    where :math:`x_{min} > 0` and :math:`\gamma < -1`
     """
     def __init__(self):
         df = lambda x, norm, index, pivot : norm * (-(1+index)/pivot)*(x/pivot)**index
@@ -252,7 +252,7 @@ except ImportError:
 def _prepare_data(x, data, error, integral):
     x = n.asarray(x)
     data = n.asarray(data)
-    if error!=None:
+    if error is not None:
         error = n.asarray(error)
     if integral:
         centers = 0.5*(x[1:]+x[:-1])

@@ -24,7 +24,7 @@ p.plot(data.x, mod(data.x), "r--")
 mod.parbox(loc=1)
 
 ax = p.subplot(122)
-p.plot(data.x, mod.chi2values, "k-")
+p.plot(mod.chi2values[0], mod.chi2values[1], "k-")
 p.text(0.1,0.9, "$\chi^2/ndof = %.2f/%d$" % (mod.chi2, mod.ndof), transform = ax.transAxes) 
 p.ylabel("chi2 contribution")
 

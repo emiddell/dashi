@@ -29,9 +29,17 @@ h = h1 + h2
 def twogauss(x, amp1, mean1, sigma1, amp2, mean2, sigma2):
     return (amp1 * scipy.stats.norm(loc=mean1, scale=sigma1).pdf(x) +
             amp2 * scipy.stats.norm(loc=mean2, scale=sigma2).pdf(x) )
+def twogauss_int(x, amp1, mean1, sigma1, amp2, mean2, sigma2):
+    return (amp1 * scipy.stats.norm(loc=mean1, scale=sigma1).cdf(x) +
+            amp2 * scipy.stats.norm(loc=mean2, scale=sigma2).cdf(x) )
 
 # wrap into a dashi.fitting.model and perform a least square fit
-mod = d.fitting.model(twogauss)
+mod = d.fitting.model(twogauss,twogauss_int)
+# first guesses
+mod.params['amp1'], mod.params['amp2'] = (h.stats.weightsum/2.,)*2
+mod.params['mean1'] = -1
+mod.params['mean2'] = 1
+
 h.leastsq(mod)
 
 
@@ -44,6 +52,6 @@ h2.statbox(loc=3)
 
 # after fitting mod behaves like a normal function with the fitted
 # parameters fixed
-p.plot(h.bincenters, mod(h.bincenters), "r-", linewidth=2,alpha=.5)
+p.plot(h.bincenters, n.diff(mod.integral(h.binedges)), "r-", linewidth=2,alpha=.5)
 mod.parbox(loc=2)
 

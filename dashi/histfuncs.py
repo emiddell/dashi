@@ -140,30 +140,30 @@ def number_error_format(value, error):
     if error<1:
         # digits needed for precision
         if error == 0:
-            digits = 1
+            digits = str(1)
         else:
             digits = str(int(abs(floor(log10(error)))))
 
         # construct format string for that precision
-        fmt = "".join(["%.", digits, "f \u00B1 %.", digits, "f"])
+        fmt = "".join(["%.", digits, u"f \u00B1 %.", digits, "f"])
         result =  fmt % (value,error)
     else:
         # digits needed for precision
         try:
             digits = str(int(abs(ceil(log10(error)))))
             # construct format string for that precision
-            fmt = "".join(["%", digits, ".0f \u00B1 %", digits, ".0f"])
+            fmt = "".join(["%", digits, u".0f \u00B1 %", digits, ".0f"])
             result =  fmt % (value,error)
         except:
             digits = '3'
-            fmt = "".join(["%", digits, ".0f \u00B1 %", digits, ".0f"])
+            fmt = "".join(["%", digits, u".0f \u00B1 %", digits, ".0f"])
             result =  fmt % (value,error)
             
 
     if factorexp != 0:
         result = "(%s) 1e%d" % (result, factorexp)
 
-    return str(result)
+    return unicode(result)
 
 
 def generatebins_1d_tuple(bintuple):

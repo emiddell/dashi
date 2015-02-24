@@ -537,7 +537,7 @@ def p2dscatter(self, log=False, color=None, label=None, orientation='horizontal'
 
           (all other kwargs will be passed to pylab.errobar)
     """
-    if len(self.x == 0):
+    if len(self.x) == 0:
         return
 
     ax = p.gca()
