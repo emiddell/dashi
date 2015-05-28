@@ -99,7 +99,7 @@ class object_bundle(object):
                 The callable should expect one argument and will be executed
                 for every object in the bundle.
         """
-        return bundle(**dict([ (name, isinstance(obj, collections.Callable)) for name,obj in self._b_objects.items()]))
+        return bundle(**dict([ (name, callable(obj)) for name,obj in self._b_objects.items()]))
     
     def map_kv(self, callable):
         """
