@@ -92,6 +92,30 @@ tmpl_latex_v = Template(r""" \begin{tabular}{ {% for x_label in range(x_labels|l
 {% for y_label in y_labels %} {{y_label}} & {% for x_label in x_labels %} {{ table_data[x_label][y_label] }} {% if y_labels|length - loop.index > 0 %} & {% endif %} {% endfor %} {% if x_labels|length - loop.index > 0 %} \\ \hline {% endif %}  
 {% endfor %}
 \end{tabular}""")
+
+tmpl_latex_pretty_h = Template(r"""\begin{table}
+\begin{tabularx}{1.\textwidth}{@{}{% for y_label in range(y_labels|length + 1) %}X{% if y_labels|length + 1 - loop.index > 0 %}{% endif %}{% endfor %}@{}}
+\toprule
+& {% for y_label in y_labels %} {{y_label}} {% if y_labels|length - loop.index > 0 %} & {% else %} \\ {% endif %} {% endfor %} 
+\midrule
+{% for x_label in x_labels %} {{x_label}} & {% for y_label in y_labels %} {{ table_data[x_label][y_label] }} {% if x_labels|length - loop.index > 0 %} & {% endif %} {% endfor %} {% if y_labels|length - loop.index > 0 %} \\ {% endif %}  
+{% endfor %}
+\bottomrule
+\end{tabularx}
+\caption{\label{tab:}}
+\end{table}""")
+    
+tmpl_latex_pretty_v = Template(r"""\begin{table}
+\begin{tabularx}{1.\textwidth}{@{}{% for x_label in range(x_labels|length + 1) %}X{% if x_labels|length + 1 - loop.index > 0 %}{% endif %}{% endfor %}@{}}
+\toprule
+& {% for x_label in x_labels %} {{x_label}} {% if x_labels|length - loop.index > 0 %} & {% else %} \\  {% endif %} {% endfor %} 
+\midrule
+{% for y_label in y_labels %} {{y_label}} & {% for x_label in x_labels %} {{ table_data[x_label][y_label] }} {% if y_labels|length - loop.index > 0 %} & {% endif %} {% endfor %} {% if x_labels|length - loop.index > 0 %} \\ {% endif %}  
+{% endfor %}
+\bottomrule
+\end{tabularx}
+\caption{\label{tab:}}
+\end{table}""")
     
 #tmpl_rst_h = """
 #{% macro dashfill() -%}
@@ -232,6 +256,17 @@ class TinyTable(object):
                                          y_labels = y_labels)
             else:
                 raise ValueError("layout not supported")
+        elif format == "latex_pretty":
+            if layout == "v":
+                return tmpl_latex_pretty_v.render(table_data=table_data, 
+                                         x_labels = self.x_labels,
+                                         y_labels = y_labels)
+            elif layout == "h":
+                return tmpl_latex_pretty_h.render(table_data=table_data, 
+                                         x_labels = self.x_labels,
+                                         y_labels = y_labels)
+            else:
+                raise ValueError("layout not supported")
         elif format == "rst":
             if layout == "v":
                 return tmpl_rst_v(max_cell_length).render(table_data=table_data, 
@@ -266,6 +301,10 @@ if __name__ == "__main__":
     print "latex"
     print t.render(layout="h", format="latex",format_cell = lambda x: "%1.2e" %x)
     print t.render(layout="v", format="latex",format_cell = lambda x:     "%1.2e" %x)
+    print 80*"-"
+    print "latex-pretty"
+    print t.render(layout="h", format="latex_pretty",format_cell = lambda x: "%1.2e" %x)
+    print t.render(layout="v", format="latex_pretty",format_cell = lambda x:     "%1.2e" %x)
     print 80*"-"
     print "rst"
     print t.render(layout="h", format="rst",format_cell = lambda x:     "%1.2e" %x)
