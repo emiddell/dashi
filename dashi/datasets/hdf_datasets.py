@@ -7,8 +7,10 @@ from dashi.datasets import Dataset
 import os.path
 import tables
 
+PANDAS=False
+if PANDAS:
+    import pandas
 
-################################################################################
 
 def read_variable(h5file, path):
     """
@@ -25,8 +27,12 @@ def read_variable(h5file, path):
             
     if ":" in path:
         path_, column = path.split(":")
+        if PANDAS:
+            return pandas.DataFrame(h5file.getNode(path_).col(column))
         return h5file.getNode(path_).col(column)
     else:
+        if PANDAS:
+            return pandas.DataFrame(h5file.getNode(path).read())
         return h5file.getNode(path).read()
 
 ################################################################################
