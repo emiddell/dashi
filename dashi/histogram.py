@@ -264,7 +264,7 @@ class histogram(object):
                 if self.ndim > 1:
                     raise ValueError("shape mismatch. provided sample has 1 dimension but the histogram has %d" % self.ndim)
                 else:
-                    sample = sample.reshape(len(sample), 1)
+                    sample = sample.reshape((len(sample),1))
             elif len(sample.shape) == 2:
                 if not sample.shape[1] == self.ndim:
                     raise ValueError("shape mismatch. provided sample should have dimensions (len, ndim=%d)" % self.ndim)
