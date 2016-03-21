@@ -121,6 +121,14 @@ def _set_logscale(ax, log=True, axis='y'):
             ax.set_yscale('log', nonposy='clip')
             ax.yaxis.set_major_locator(PaddedLogLocator())
 
+def _next_color(ax):
+    if hasattr(ax._get_lines, 'color_cycle'):
+        return next(ax._get_lines.color_cycle)
+    elif 'color' in ax._get_lines._prop_keys:
+        return next(ax._get_lines.prop_cycler)['color']
+    else:
+        return None
+
 def h1scatter(self, log=False, cumulative=False, cumdir=1, color=None, differential=False, **kwargs):
     """ use pylab.errorplot to plot a 1d histogram 
         
@@ -138,7 +146,7 @@ def h1scatter(self, log=False, cumulative=False, cumdir=1, color=None, different
     
     ax = p.gca()
     if color is None:
-        color = next(ax._get_lines.color_cycle)
+        color = _next_color(ax)
     
     kw = {
         "xerr" : self.xerr,
@@ -275,7 +283,7 @@ def h1line(self, log=False, cumulative=False, differential=False, cumdir=1, fill
         ax._legend_proxy = LegendProxy(ax)
     label = kwargs.pop('label', self.title)
     if color is None:
-        color = next(ax._get_lines.color_cycle)
+        color = _next_color(ax)
     kwargs['color'] = color
     if filled:
         ax._legend_proxy.add_fill(label=label, **kwargs)
@@ -542,7 +550,7 @@ def p2dscatter(self, log=False, color=None, label=None, orientation='horizontal'
 
     ax = p.gca()
     if color is None:
-        color = next(ax._get_lines.color_cycle)
+        color = _next_color(ax)
     
     kw = {"xerr" : self.xerr, "yerr" : self.yerr, "fmt" : "k", "capsize" : 0., "linestyle" : 'None', "color" : color}
     kw.update(kwargs)
