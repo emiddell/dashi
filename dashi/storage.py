@@ -12,7 +12,7 @@ def maybe_open_file(path, mode='r'):
     else:
         yield path
 
-def histsave(histo, path, where, name, overwrite=False):
+def histsave(histo, path, where, name, overwrite=False, complib='blosc'):
     """
         store a histogram in a hdf file. It will create a group
         that contains the arrays of the histogram. Labels and
@@ -48,7 +48,7 @@ def histsave(histo, path, where, name, overwrite=False):
         attr["nans_sqwgt"] = histo.stats.values["nans_sqwgt"]
 
         def save(arr, where):
-            filters = tables.Filters(complib='blosc', complevel=9)
+            filters = tables.Filters(complib=complib, complevel=9)
             ca = file.createCArray(group, where, tables.Atom.from_dtype(arr.dtype), arr.shape, filters=filters)
             ca[:] = arr
 
