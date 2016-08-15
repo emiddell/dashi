@@ -699,6 +699,18 @@ class hist2d(histogram):
 def create(ndim, binedges, bincontent=None, squaredweights=None, labels=None):
     """
     convenience method: create an *ndim*-dimensional histogram
+    
+    :param ndim: number of dimensions
+    :param binedges: a sequence of length ndim, with each element specifying
+                     the bin edges in a particular dimension
+    :param bincontent: if supplied, an ndim-dimensional array to use as storage
+                       for the bin contents. It must include the under- and
+                       overflow-bins, i.e. its shape should be (len(edges)+2
+                       for edges in binedges). If None, a new array will be
+                       created internally.
+    :param squaredweights: if supplied, an array of the same shape as bincontent
+    :param labels: if supplied, a sequence of length ndim containing the labels
+                   for each axis
     """
     kwargs = dict(bincontent=bincontent, squaredweights=squaredweights)
     if labels is None:
