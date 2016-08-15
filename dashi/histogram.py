@@ -132,11 +132,27 @@ class histogram(object):
     _h_bincenters = property(lambda self : [ 0.5*(edges[2:-1] + edges[1:-2]) for edges in self._h_binedges],
                              doc="a list of arrays containing the centers of all bins")
     
+    nbins      = property(lambda self: tuple([i-2 for i in self._h_bincontent.shape]), None)
     binedges   = property(lambda self : [i[1:-1] for i in self._h_binedges], None)
     bincenters = property(lambda self : self._h_bincenters, None)
     binwidths = property(lambda self : self._h_binwidths, None)
     binerror   = property(lambda self : n.sqrt(self._h_squaredweights[self._h_visiblerange]), None)
     
+    # present views of the non overflow bins to the outside
+    @property
+    def bincontent(self):
+        return self._h_bincontent[self._h_visiblerange]
+    @bincontent.setter
+    def bincontent(self, v):
+        self._h_bincontent[self._h_visiblerange] = v
+
+    @property
+    def squaredweights(self):
+        return self._h_squaredweights[self._h_visiblerange]
+    @squaredweights.setter
+    def squaredweights(self, v):
+        self._h_squaredweights[self._h_visiblerange] = v
+
     @staticmethod
     def _slice_slab(array, pos):
         ndim = array.ndim
@@ -229,9 +245,6 @@ class histogram(object):
 
         # present views of the non overflow bins to the outside 
         self._h_visiblerange = [slice(1,-1) for i in range(self.ndim)]
-        self.bincontent      = self._h_bincontent[self._h_visiblerange]
-        self.squaredweights  = self._h_squaredweights[self._h_visiblerange]
-        self.nbins           = tuple([i-2 for i in self._h_bincontent.shape])
 
         self._h_newdataavailable = True # internal trigger for the recalculation of dervived values (e.g. errors, stats,..)
 

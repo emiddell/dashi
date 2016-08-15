@@ -224,6 +224,22 @@ def test_rebin():
             assert(hb._h_squaredweights.sum() == h._h_squaredweights.sum())
             assert(hb.labels == h.labels)
 
+def test_bincontent_assign():
+    for ndim in range(1, 5):
+        bins = [n.linspace(0, 1, i+10) for i in range(ndim)]
+        h = d.histogram.create(ndim, bins, labels=['o'*(i+1) for i in range(ndim)])
+        
+        sample = tuple((n.random.uniform(-1, 2, size=10000) for i in range(ndim)))
+        h.fill(sample)
+        
+        assert(h.bincontent.sum() > 0)
+        h.bincontent = n.zeros(h.bincontent.shape)
+        assert(h.bincontent.sum() == 0)
+        
+        assert(h.squaredweights.sum() > 0)
+        h.squaredweights = n.zeros(h.squaredweights.shape)
+        assert(h.squaredweights.sum() == 0)
+        
     #h2 = h.hist2d(...)
 #    h2.profile(axis, method="stdev") # or "gaussian" axis=0,1, maybe define methods profilex y 
 #    h2.scatter()
