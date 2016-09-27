@@ -231,7 +231,10 @@ def _minuit(model, chi2, verbose=True):
     # store results and return model
     model.params.update(minuit.values)
     model.errors.update(minuit.errors)
-    model.cov  = n.asarray( minuit.matrix() )
+    if minuit.covariance is not None:
+        model.cov = n.asarray( minuit.matrix() )
+    else:
+        model.cov = None
     model.chi2 = minuit.fval
 
 _minimize = None
