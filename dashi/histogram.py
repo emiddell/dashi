@@ -446,7 +446,16 @@ class histogram(object):
             return (self * ( 1. / float(other) ) )
         else:
             return self
-            
+        
+    def __truediv__(self, other):
+        "implement histogram / scalar"
+        if not n.isscalar(other):
+            raise ValueError("division is only implemented for scalars")
+        if other != 0:
+            return (self * ( 1. / float(other) ) )
+        else:
+            return self
+        
     def __getitem__(self, slice_):
         """
         implement histogram[index]
